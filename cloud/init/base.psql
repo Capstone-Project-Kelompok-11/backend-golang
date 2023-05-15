@@ -1,0 +1,5 @@
+CREATE USER "user" WITH PASSWORD '1234';
+CREATE DATABASE "academy";
+GRANT ALL ON DATABASE "academy" TO "user";
+GRANT USAGE ON SCHEMA "public" TO "user";
+ALTER DATABASE "academy" OWNER TO "user";

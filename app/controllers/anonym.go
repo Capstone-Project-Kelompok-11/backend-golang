@@ -1,18 +1,20 @@
 package controllers
 
 import (
-	"skfw/papaya/bunny/swag"
-	"skfw/papaya/koala/kornet"
-	"skfw/papaya/koala/mapping"
+  "skfw/papaya"
+  "skfw/papaya/bunny/swag"
+  "skfw/papaya/koala/kornet"
+  "skfw/papaya/koala/mapping"
 )
 
-func AnonymController(router swag.SwagRouterImpl) {
+func AnonymController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
 
-	router.Get("/", &mapping.KMap{
-		"request":   nil,
-		"responses": swag.OkJSON(&kornet.Result{}),
-	}, func(ctx *swag.SwagContext) error {
+  router.Get("/ping", &mapping.KMap{
+    "request":     nil,
+    "description": "Testing Response",
+    "responses":   swag.OkJSON(&kornet.Result{}),
+  }, func(ctx *swag.SwagContext) error {
 
-		return nil
-	})
+    return ctx.Message("pong")
+  })
 }

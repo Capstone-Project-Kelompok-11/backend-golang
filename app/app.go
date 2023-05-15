@@ -1,61 +1,71 @@
 package app
 
 import (
-	"lms/app/controllers"
-	"lms/app/middleware"
-	"lms/app/models"
-	"lms/app/tasks"
-	"skfw/papaya"
-	"skfw/papaya/bunny/swag"
-	bac "skfw/papaya/pigeon/templates/basicAuth/controllers"
-	"time"
+  "lms/app/controllers"
+  "lms/app/factory"
+  "lms/app/middleware"
+  "lms/app/models"
+  "lms/app/tasks"
+  "skfw/papaya"
+  "skfw/papaya/bunny/swag"
+  bac "skfw/papaya/pigeon/templates/basicAuth/controllers"
+  "time"
 )
 
 func App(pn papaya.NetImpl) error {
 
-	conn := pn.Connection()
-	gorm := conn.GORM()
+  conn := pn.Connection()
+  DB := conn.GORM()
 
-	ManageControlResourceShared(pn)
+  ManageControlResourceShared(pn)
 
-	logger := middleware.MakeLoggerMiddleware(pn)
-	pn.Use(logger)
+  logger := middleware.MakeLoggerMiddleware(pn)
+  pn.Use(logger)
 
-	swagger := pn.MakeSwagger(&swag.SwagInfo{
-		Title:       "Academy API",
-		Version:     "1.0.0",
-		Description: "Academy API Documentation",
-	})
+  swagger := pn.MakeSwagger(&swag.SwagInfo{
+    Title:       "Academy API",
+    Version:     "1.0.0",
+    Description: "Academy API Documentation",
+  })
 
-	mainGroup := swagger.Group("/api/v1", "Schema")
+  mainGroup := swagger.Group("/api/v1", "Schema")
 
-	anonymGroup := mainGroup.Group("/public", "Anonymous")
-	userGroup := mainGroup.Group("/users", "Authentication")
+  anonymGroup := mainGroup.Group("/public", "Anonymous")
+  actionGroup := mainGroup.Group("/action", "Action")
+  adminGroup := mainGroup.Group("/admin", "Administration")
+  userGroup := mainGroup.Group("/users", "Authentication")
 
-	anonymRouter := anonymGroup.Router()
-	userRouter := userGroup.Router()
+  anonymRouter := anonymGroup.Router()
+  actionRouter := actionGroup.Router()
+  adminRouter := adminGroup.Router()
+  userRouter := userGroup.Router()
 
-	expired := time.Hour * 24
-	activeDuration := time.Hour * 4 // time to live, interval
-	maxSessions := 6
+  expired := time.Hour * 24
+  activeDuration := time.Hour * 4 // time to live, interval
+  maxSessions := 6
 
-	basicAuth := bac.BasicAuthNew(conn, expired, activeDuration, maxSessions)
-	basicAuth.Bind(swagger, userRouter)
+  controllers.AnonymController(pn, anonymRouter)
 
-	swagger.AddTask(tasks.MakeAdminTask())
+  basicAuth := bac.BasicAuthNew(conn, expired, activeDuration, maxSessions)
+  basicAuth.Bind(swagger, userRouter)
 
-	gorm.AutoMigrate(
-		&models.Users{},
-		&models.Sessions{},
-		&models.Modules{},
-		&models.Courses{},
-		&models.Carts{},
-		&models.Transactions{},
-	)
+  controllers.ActionController(pn, actionRouter)
+  controllers.AdminController(pn, adminRouter)
 
-	controllers.AnonymController(anonymRouter)
+  swagger.AddTask(tasks.MakeAdminTask())
 
-	swagger.Start()
+  DB.AutoMigrate(
+    &models.Users{},
+    &models.Sessions{},
+    &models.Courses{},
+    &models.Modules{},
+    &models.Transactions{},
+    &models.Carts{},
+  )
 
-	return pn.Serve("127.0.0.1", 8000)
+  factory.AdminFactory(pn) // set admin factory
+
+  swagger.Start()
+
+  return pn.Serve("127.0.0.1", 8000)
 }

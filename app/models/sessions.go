@@ -3,10 +3,10 @@ package models
 import "skfw/papaya/pigeon/templates/basicAuth/models"
 
 type Sessions struct {
-	*models.SessionModel
+  *models.SessionModel
 }
 
 func (Sessions) TableName() string {
 
-	return "sessions"
+  return "sessions"
 }
