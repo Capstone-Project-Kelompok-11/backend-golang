@@ -8,16 +8,17 @@ import (
 func main() {
 
 	pn := papaya.NetNew()
+	logger := pn.Logger()
 
 	if err := app.App(pn); err != nil {
 
-		pn.Logger().Error(err)
+		logger.Error(err)
 	}
 
 	if err := pn.Close(); err != nil {
 
-		pn.Logger().Error(err)
+		logger.Error(err)
 	}
 
-	pn.Logger().Log("Shutdown ...")
+	logger.Log("Shutdown ...")
 }
