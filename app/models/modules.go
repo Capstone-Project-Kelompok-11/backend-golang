@@ -6,9 +6,12 @@ import (
 
 type Modules struct {
   *easy.Model
-  CourseID    string `gorm:"type:VARCHAR(32);not null" json:"course_id"`
-  Name        string `gorm:"type:VARCHAR(52);unique;not null" json:"name"`
-  Description string `gorm:"type:VARCHAR(200)" json:"description"`
+  CourseID          string              `gorm:"type:VARCHAR(32);not null" json:"course_id"`
+  Name              string              `gorm:"type:VARCHAR(52);unique;not null" json:"name"`
+  Description       string              `json:"description"`
+  Thumbnail         string              `json:"thumbnail"`
+  Quizzes           []Quizzes           `gorm:"foreignKey:ModuleID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE" json:"quizzes"`
+  CompletionModules []CompletionModules `gorm:"foreignKey:ModuleID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE" json:"completion_modules"`
 }
 
 func (Modules) TableName() string {

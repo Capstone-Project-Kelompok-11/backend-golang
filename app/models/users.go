@@ -7,8 +7,13 @@ import (
 
 type Users struct {
   *models.UserModel
-  Balance decimal.Decimal `gorm:"default:0" json:"balance"`
-  Carts   []Carts         `gorm:"foreignKey:UserID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE" json:"carts"`
+  Balance           decimal.Decimal     `gorm:"default:0" json:"balance"`
+  Courses           []Courses           `gorm:"foreignKey:UserID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE" json:"courses"`
+  Reviews           []Reviews           `gorm:"foreignKey:UserID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE" json:"reviews"`
+  CompletionCourses []CompletionCourses `gorm:"foreignKey:UserID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE" json:"completion_courses"`
+  CompletionModules []CompletionModules `gorm:"foreignKey:UserID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE" json:"completion_modules"`
+  Transactions      []Transactions      `gorm:"foreignKey:UserID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE" json:"transactions"`
+  Carts             []Carts             `gorm:"foreignKey:UserID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE" json:"carts"`
 }
 
 func (Users) TableName() string {

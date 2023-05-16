@@ -10,3 +10,7 @@ Features
 - Documentation with Swagger (*OpenAPI 3.0*)
 - Max Sessions with Index Limiter
 - Request Validation
+
+Schema ERD
+
+![Academy Schema ERD](imgs/academy_schema_erd.png)
