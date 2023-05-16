@@ -103,6 +103,89 @@ func SafePathName(name string) string {
   }, name)
 }
 
+func ResizeImageX256(data []byte, format string) ([]byte, error) {
+
+  format, _ = strings.CutPrefix(format, ".") // maybe use a extension
+
+  var err error
+  var img image.Image
+
+  if img, _, err = image.Decode(bytes.NewReader(data)); err != nil {
+
+    return nil, err
+  }
+
+  dst := image.NewRGBA(image.Rect(0, 0, 256, 256))
+
+  draw.NearestNeighbor.Scale(dst, dst.Rect, img, img.Bounds(), draw.Over, nil)
+
+  var buf bytes.Buffer
+
+  switch format {
+  case "png":
+
+    if err = png.Encode(&buf, dst); err != nil {
+
+      return nil, err
+    }
+    break
+
+  case "jpe", "jpeg", "jpg":
+
+    if err = jpeg.Encode(&buf, dst, nil); err != nil {
+
+      return nil, err
+    }
+    break
+
+  default:
+
+    return nil, fmt.Errorf("unsupported format: %s", format)
+  }
+
+  return buf.Bytes(), nil
+}
+
+func SaveImageX256(key string, format string, output string) fiber.Handler {
+
+  return func(ctx *fiber.Ctx) error {
+
+    var err error
+    var header *multipart.FileHeader
+    var file multipart.File
+    var buff []byte
+
+    if header, err = ctx.FormFile(key); err != nil {
+
+      return ctx.Status(http.StatusInternalServerError).JSON(kornet.Msg("unable to get header information", true))
+    }
+
+    if file, err = header.Open(); err != nil {
+
+      return ctx.Status(http.StatusInternalServerError).JSON(kornet.Msg("unable to open image file", true))
+    }
+
+    defer file.Close()
+
+    if buff, err = io.ReadAll(file); err != nil {
+
+      return ctx.Status(http.StatusInternalServerError).JSON(kornet.Msg("unable to read image file", true))
+    }
+
+    if buff, err = ResizeImageX256(buff, format); err != nil {
+
+      return ctx.Status(http.StatusInternalServerError).JSON(kornet.Msg("unable to resize image file", true))
+    }
+
+    if err = os.WriteFile(output, buff, 0644); err != nil {
+
+      return ctx.Status(http.StatusInternalServerError).JSON(kornet.Msg("unable to save image file", true))
+    }
+
+    return ctx.Status(http.StatusCreated).JSON(kornet.Msg("upload image file successfully", false))
+  }
+}
+
 func ResizeImage(data []byte, format string) ([]byte, error) {
 
   format, _ = strings.CutPrefix(format, ".") // maybe use a extension
@@ -115,8 +198,9 @@ func ResizeImage(data []byte, format string) ([]byte, error) {
     return nil, err
   }
 
-  //dst := image.NewRGBA(image.Rect(0, 0, img.Bounds().Max.X/2, img.Bounds().Max.Y/2))
-  dst := image.NewRGBA(image.Rect(0, 0, 256, 256))
+  ImageScale := .8
+
+  dst := image.NewRGBA(image.Rect(0, 0, int(float64(img.Bounds().Max.X)*ImageScale), int(float64(img.Bounds().Max.Y)*ImageScale)))
 
   draw.NearestNeighbor.Scale(dst, dst.Rect, img, img.Bounds(), draw.Over, nil)
 
@@ -158,31 +242,31 @@ func SaveImage(key string, format string, output string) fiber.Handler {
 
     if header, err = ctx.FormFile(key); err != nil {
 
-      return ctx.Status(http.StatusInternalServerError).JSON(kornet.ResultNew(kornet.MessageNew("unable to get header information", true), nil))
+      return ctx.Status(http.StatusInternalServerError).JSON(kornet.Msg("unable to get header information", true))
     }
 
     if file, err = header.Open(); err != nil {
 
-      return ctx.Status(http.StatusInternalServerError).JSON(kornet.ResultNew(kornet.MessageNew("unable to open image file", true), nil))
+      return ctx.Status(http.StatusInternalServerError).JSON(kornet.Msg("unable to open image file", true))
     }
 
     defer file.Close()
 
     if buff, err = io.ReadAll(file); err != nil {
 
-      return ctx.Status(http.StatusInternalServerError).JSON(kornet.ResultNew(kornet.MessageNew("unable to read image file", true), nil))
+      return ctx.Status(http.StatusInternalServerError).JSON(kornet.Msg("unable to read image file", true))
     }
 
     if buff, err = ResizeImage(buff, format); err != nil {
 
-      return ctx.Status(http.StatusInternalServerError).JSON(kornet.ResultNew(kornet.MessageNew("unable to resize image file", true), nil))
+      return ctx.Status(http.StatusInternalServerError).JSON(kornet.Msg("unable to resize image file", true))
     }
 
     if err = os.WriteFile(output, buff, 0644); err != nil {
 
-      return ctx.Status(http.StatusInternalServerError).JSON(kornet.ResultNew(kornet.MessageNew("unable to save image file", true), nil))
+      return ctx.Status(http.StatusInternalServerError).JSON(kornet.Msg("unable to save image file", true))
     }
 
-    return ctx.Status(http.StatusCreated).JSON(kornet.ResultNew(kornet.MessageNew("upload image file successfully", false), nil))
+    return ctx.Status(http.StatusCreated).JSON(kornet.Msg("upload image file successfully", false))
   }
 }
