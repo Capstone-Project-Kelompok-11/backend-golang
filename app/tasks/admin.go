@@ -1,7 +1,6 @@
 package tasks
 
 import (
-  "net/http"
   "skfw/papaya/bunny/swag"
   "skfw/papaya/koala/kornet"
   "skfw/papaya/pigeon/templates/basicAuth/models"
@@ -23,6 +22,6 @@ func MakeAdminTask() *swag.SwagTask {
     }
 
     ctx.Prevent()
-    return ctx.Status(http.StatusUnauthorized).JSON(kornet.MessageNew("access denied", true))
+    return ctx.Unauthorized(kornet.Msg("Access Denied", true))
   })
 }

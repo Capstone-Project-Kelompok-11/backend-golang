@@ -20,5 +20,5 @@ type CompletionModules struct {
 
 func (CompletionModules) TableName() string {
 
-  return "completions_modules"
+  return "completion_modules"
 }

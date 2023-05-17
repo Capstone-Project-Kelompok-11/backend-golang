@@ -25,7 +25,7 @@ type Courses struct {
   Rating2           int                 `json:"rating_2"`
   Rating1           int                 `json:"rating_1"`
   Modules           []Modules           `gorm:"foreignKey:CourseID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE" json:"modules"`
-  Reviews           []Reviews           `gorm:"foreignKey:CourseID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE" json:"reviews"`
+  Reviews           []ReviewCourses     `gorm:"foreignKey:CourseID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE" json:"reviews"`
   CompletionCourses []CompletionCourses `gorm:"foreignKey:CourseID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE" json:"completion_courses"`
   CategoryCourses   []CategoryCourses   `gorm:"foreignKey:CourseID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE" json:"category_courses"`
 }

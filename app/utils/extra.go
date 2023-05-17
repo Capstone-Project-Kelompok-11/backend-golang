@@ -157,7 +157,7 @@ func SaveImageX256(key string, format string, output string) fiber.Handler {
 
     if header, err = ctx.FormFile(key); err != nil {
 
-      return ctx.Status(http.StatusInternalServerError).JSON(kornet.Msg("unable to get header information", true))
+      return ctx.Status(http.StatusInternalServerError).JSON(kornet.Msg("unable to get header information from form-data", true))
     }
 
     if file, err = header.Open(); err != nil {
@@ -242,7 +242,7 @@ func SaveImage(key string, format string, output string) fiber.Handler {
 
     if header, err = ctx.FormFile(key); err != nil {
 
-      return ctx.Status(http.StatusInternalServerError).JSON(kornet.Msg("unable to get header information", true))
+      return ctx.Status(http.StatusInternalServerError).JSON(kornet.Msg("unable to get header information from form-data", true))
     }
 
     if file, err = header.Open(); err != nil {

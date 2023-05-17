@@ -4,7 +4,7 @@ import (
   "skfw/papaya/pigeon/easy"
 )
 
-type Reviews struct {
+type ReviewCourses struct {
   *easy.Model
   CourseID    string `gorm:"type:VARCHAR(32);not null" json:"course_id"`
   UserID      string `gorm:"type:VARCHAR(32);not null" json:"user_id"`
@@ -12,7 +12,7 @@ type Reviews struct {
   Rating      int    `json:"rating"`
 }
 
-func (Reviews) TableName() string {
+func (ReviewCourses) TableName() string {
 
-  return "reviews"
+  return "review_courses"
 }
