@@ -10,6 +10,8 @@ type Modules struct {
   Name              string              `gorm:"type:VARCHAR(52);unique;not null" json:"name"`
   Description       string              `json:"description"`
   Thumbnail         string              `json:"thumbnail"`
+  Video             string              `json:"video"`
+  Document          string              `json:"document"`
   Quizzes           []Quizzes           `gorm:"foreignKey:ModuleID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE" json:"quizzes"`
   CompletionModules []CompletionModules `gorm:"foreignKey:ModuleID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE" json:"completion_modules"`
 }

@@ -48,6 +48,11 @@ func (t *TransactionRepository) FindAll(size int, page int, query any, args ...a
   return t.Repository.FindAll(size, page, query, args...)
 }
 
+func (t *TransactionRepository) CatchAll(size int, page int) ([]models.Transactions, error) {
+
+  return t.Repository.CatchAll(size, page)
+}
+
 func (t *TransactionRepository) Create(model *models.Transactions) (*models.Transactions, error) {
 
   return t.Repository.Create(model)
@@ -66,4 +71,9 @@ func (t *TransactionRepository) Remove(query any, args ...any) error {
 func (t *TransactionRepository) Delete(query any, args ...any) error {
 
   return t.Repository.Delete(query, args...)
+}
+
+func (t *TransactionRepository) Unscoped() easy.RepositoryImpl[models.Transactions] {
+
+  return t.Unscoped()
 }

@@ -48,6 +48,11 @@ func (u *UserRepository) FindAll(size int, page int, query any, args ...any) ([]
   return u.Repository.FindAll(size, page, query, args...)
 }
 
+func (u *UserRepository) CatchAll(size int, page int) ([]models.Users, error) {
+
+  return u.Repository.CatchAll(size, page)
+}
+
 func (u *UserRepository) Create(model *models.Users) (*models.Users, error) {
 
   return u.Repository.Create(model)
@@ -66,4 +71,9 @@ func (u *UserRepository) Remove(query any, args ...any) error {
 func (u *UserRepository) Delete(query any, args ...any) error {
 
   return u.Repository.Delete(query, args...)
+}
+
+func (u *UserRepository) Unscoped() easy.RepositoryImpl[models.Users] {
+
+  return u.Unscoped()
 }

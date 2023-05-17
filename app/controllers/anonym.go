@@ -1,6 +1,8 @@
 package controllers
 
 import (
+  "lms/app/models"
+  "lms/app/repository"
   util "lms/app/utils"
   "skfw/papaya"
   "skfw/papaya/bunny/swag"
@@ -12,6 +14,11 @@ import (
 
 func AnonymController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
 
+  conn := pn.Connection()
+  DB := conn.GORM()
+
+  courseRepo, _ := repository.CourseRepositoryNew(DB)
+
   router.Get("/ping", &m.KMap{
     "description": "Testing Response",
     "request":     nil,
@@ -21,31 +28,31 @@ func AnonymController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
     return ctx.Message("pong")
   })
 
-  router.Get("/image/:img", &m.KMap{
+  router.Get("/image/:src", &m.KMap{
     "description": "Get Public Image",
     "request": &m.KMap{
       "params": &m.KMap{
-        "#img": "string",
+        "#src": "string",
       },
     },
-    "responses": []byte{},
+    "responses": nil,
   }, func(ctx *swag.SwagContext) error {
 
     kReq, _ := ctx.Kornet()
 
-    img := util.SafePathName(m.KValueToString(kReq.Path.Get("img")))
+    src := util.SafePathName(m.KValueToString(kReq.Path.Get("src")))
 
-    if img != "" {
+    if src != "" {
 
-      img = posix.KPathNew("assets/public/images").JoinStr(img)
+      src = posix.KPathNew("assets/public/images").JoinStr(src)
 
-      file := kio.KFileNew(img)
+      file := kio.KFileNew(src)
 
       if file.IsExist() {
 
         if file.IsFile() {
 
-          return ctx.SendFile(img, true)
+          return ctx.SendFile(src, true)
         }
       }
 
@@ -53,5 +60,139 @@ func AnonymController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
     }
 
     return ctx.BadRequest(kornet.Msg("invalid path", true))
+  })
+
+  router.Get("/document/:src", &m.KMap{
+    "description": "Get Public Document",
+    "request": &m.KMap{
+      "params": &m.KMap{
+        "#src": "string",
+      },
+    },
+    "responses": nil,
+  }, func(ctx *swag.SwagContext) error {
+
+    kReq, _ := ctx.Kornet()
+
+    src := util.SafePathName(m.KValueToString(kReq.Path.Get("src")))
+
+    if src != "" {
+
+      src = posix.KPathNew("assets/public/documents").JoinStr(src)
+
+      file := kio.KFileNew(src)
+
+      if file.IsExist() {
+
+        if file.IsFile() {
+
+          return ctx.SendFile(src, true)
+        }
+      }
+
+      return ctx.BadRequest(kornet.Msg("image not found", true))
+    }
+
+    return ctx.BadRequest(kornet.Msg("invalid path", true))
+  })
+
+  router.Get("/video/:src", &m.KMap{
+    "description": "Get Public Video",
+    "request": &m.KMap{
+      "params": &m.KMap{
+        "#src": "string",
+      },
+    },
+    "responses": nil,
+  }, func(ctx *swag.SwagContext) error {
+
+    kReq, _ := ctx.Kornet()
+
+    src := util.SafePathName(m.KValueToString(kReq.Path.Get("src")))
+
+    if src != "" {
+
+      src = posix.KPathNew("assets/public/videos").JoinStr(src)
+
+      file := kio.KFileNew(src)
+
+      if file.IsExist() {
+
+        if file.IsFile() {
+
+          return ctx.SendFile(src, true)
+        }
+      }
+
+      return ctx.BadRequest(kornet.Msg("image not found", true))
+    }
+
+    return ctx.BadRequest(kornet.Msg("invalid path", true))
+  })
+
+  router.Get("/courses", &m.KMap{
+    "description": "Catch All Courses",
+    "request": &m.KMap{
+      "params": &m.KMap{
+        "page": "number",
+        "size": "number",
+      },
+    },
+    "responses": swag.OkJSON([]m.KMapImpl{
+      &m.KMap{
+        "id":          "string",
+        "name":        "string",
+        "description": "string",
+        "thumbnail":   "string",
+        "video":       "string",
+        "document":    "string",
+        "price":       "number",
+        "level":       "string",
+        "rating":      "number",
+        "finished":    "number",
+        "members":     "number",
+      },
+    }),
+  }, func(ctx *swag.SwagContext) error {
+
+    var err error
+    var data []models.Courses
+
+    kReq, _ := ctx.Kornet()
+
+    page := util.ValueToInt(kReq.Query.Get("page"))
+    size := util.ValueToInt(kReq.Query.Get("size"))
+
+    if data, err = courseRepo.CatchAll(size, page); err != nil {
+
+      return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+    }
+
+    res := make([]m.KMapImpl, 0)
+
+    for _, course := range data {
+
+      res = append(res, &m.KMap{
+        "id":          course.Model.ID,
+        "name":        course.Name,
+        "description": course.Description,
+        "thumbnail":   course.Thumbnail,
+        "video":       course.Video,
+        "document":    course.Document,
+        "price":       course.Price,
+        "level":       course.Level,
+        "rating": util.RatingView(util.Rating{
+          Rating1: course.Rating1,
+          Rating2: course.Rating2,
+          Rating3: course.Rating3,
+          Rating4: course.Rating4,
+          Rating5: course.Rating5,
+        }),
+        "finished": 0,
+        "members":  0,
+      })
+    }
+
+    return ctx.OK(kornet.ResultNew(kornet.MessageNew("catch all courses", false), res))
   })
 }

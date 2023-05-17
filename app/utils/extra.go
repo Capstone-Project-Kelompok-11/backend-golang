@@ -19,6 +19,10 @@ import (
   "strings"
 )
 
+var ImageLimitSize = 1024 * 1024 * 2    // 2MB
+var FileLimitSize = 1024 * 1024 * 2     // 2MB
+var DocumentLimitSize = 1024 * 1024 * 2 // 2MB
+
 func ValueToInt(value any) int {
 
   val := pp.KIndirectValueOf(value)
@@ -35,6 +39,27 @@ func ValueToInt(value any) int {
     }
 
     return int(mapping.KValueToInt(value))
+  }
+
+  return 0
+}
+
+func ValueToInt64(value any) int64 {
+
+  val := pp.KIndirectValueOf(value)
+
+  if val.IsValid() {
+
+    ty := val.Type()
+
+    switch ty.Kind() {
+
+    case reflect.Float64:
+
+      return int64(mapping.KValueToFloat(value))
+    }
+
+    return mapping.KValueToInt(value)
   }
 
   return 0
@@ -257,6 +282,13 @@ func SaveImage(key string, format string, output string) fiber.Handler {
       return ctx.Status(http.StatusInternalServerError).JSON(kornet.Msg("unable to read image file", true))
     }
 
+    size := len(buff)
+
+    if size > ImageLimitSize {
+
+      return ctx.Status(http.StatusBadRequest).JSON(kornet.Msg("image file is too big than "+kornet.ReprByte(uint64(ImageLimitSize)), true))
+    }
+
     if buff, err = ResizeImage(buff, format); err != nil {
 
       return ctx.Status(http.StatusInternalServerError).JSON(kornet.Msg("unable to resize image file", true))
@@ -268,5 +300,91 @@ func SaveImage(key string, format string, output string) fiber.Handler {
     }
 
     return ctx.Status(http.StatusCreated).JSON(kornet.Msg("upload image file successfully", false))
+  }
+}
+
+func SaveFile(key string, output string) fiber.Handler {
+
+  // no fix, limit reachable, not work for stream or large file
+
+  return func(ctx *fiber.Ctx) error {
+
+    var err error
+    var header *multipart.FileHeader
+    var file multipart.File
+    var buff []byte
+
+    if header, err = ctx.FormFile(key); err != nil {
+
+      return ctx.Status(http.StatusInternalServerError).JSON(kornet.Msg("unable to get header information from form-data", true))
+    }
+
+    if file, err = header.Open(); err != nil {
+
+      return ctx.Status(http.StatusInternalServerError).JSON(kornet.Msg("unable to open file", true))
+    }
+
+    defer file.Close()
+
+    if buff, err = io.ReadAll(file); err != nil {
+
+      return ctx.Status(http.StatusInternalServerError).JSON(kornet.Msg("unable to read file", true))
+    }
+
+    size := len(buff)
+
+    if size > FileLimitSize {
+
+      return ctx.Status(http.StatusBadRequest).JSON(kornet.Msg("file is too big than "+kornet.ReprByte(uint64(FileLimitSize)), true))
+    }
+
+    if err = os.WriteFile(output, buff, 0644); err != nil {
+
+      return ctx.Status(http.StatusInternalServerError).JSON(kornet.Msg("unable to save file", true))
+    }
+
+    return ctx.Status(http.StatusCreated).JSON(kornet.Msg("upload file successfully", false))
+  }
+}
+
+func SaveDocument(key string, output string) fiber.Handler {
+
+  return func(ctx *fiber.Ctx) error {
+
+    var err error
+    var header *multipart.FileHeader
+    var file multipart.File
+    var buff []byte
+
+    if header, err = ctx.FormFile(key); err != nil {
+
+      return ctx.Status(http.StatusInternalServerError).JSON(kornet.Msg("unable to get header information from form-data", true))
+    }
+
+    if file, err = header.Open(); err != nil {
+
+      return ctx.Status(http.StatusInternalServerError).JSON(kornet.Msg("unable to open document", true))
+    }
+
+    defer file.Close()
+
+    if buff, err = io.ReadAll(file); err != nil {
+
+      return ctx.Status(http.StatusInternalServerError).JSON(kornet.Msg("unable to read document", true))
+    }
+
+    size := len(buff)
+
+    if size > DocumentLimitSize {
+
+      return ctx.Status(http.StatusBadRequest).JSON(kornet.Msg("document file is too big than "+kornet.ReprByte(uint64(DocumentLimitSize)), true))
+    }
+
+    if err = os.WriteFile(output, buff, 0644); err != nil {
+
+      return ctx.Status(http.StatusInternalServerError).JSON(kornet.Msg("unable to save document", true))
+    }
+
+    return ctx.Status(http.StatusCreated).JSON(kornet.Msg("upload document successfully", false))
   }
 }

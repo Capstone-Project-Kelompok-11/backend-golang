@@ -48,6 +48,11 @@ func (c *CompletionModuleRepository) FindAll(size int, page int, query any, args
   return c.Repository.FindAll(size, page, query, args...)
 }
 
+func (c *CompletionModuleRepository) CatchAll(size int, page int) ([]models.CompletionModules, error) {
+
+  return c.Repository.CatchAll(size, page)
+}
+
 func (c *CompletionModuleRepository) Create(model *models.CompletionModules) (*models.CompletionModules, error) {
 
   return c.Repository.Create(model)
@@ -66,4 +71,9 @@ func (c *CompletionModuleRepository) Remove(query any, args ...any) error {
 func (c *CompletionModuleRepository) Delete(query any, args ...any) error {
 
   return c.Repository.Delete(query, args...)
+}
+
+func (c *CompletionModuleRepository) Unscoped() easy.RepositoryImpl[models.CompletionModules] {
+
+  return c.Unscoped()
 }

@@ -17,13 +17,15 @@ type Courses struct {
   Name              string              `gorm:"type:VARCHAR(52);unique;not null" json:"name"`
   Description       string              `json:"description"`
   Thumbnail         string              `json:"thumbnail"`
+  Video             string              `json:"video"`
+  Document          string              `json:"document"`
   Price             decimal.Decimal     `json:"price"`
   Level             string              `json:"level"`
-  Rating5           int                 `json:"rating_5"`
-  Rating4           int                 `json:"rating_4"`
-  Rating3           int                 `json:"rating_3"`
-  Rating2           int                 `json:"rating_2"`
-  Rating1           int                 `json:"rating_1"`
+  Rating5           int                 `gorm:"type:INTEGER;default:0" json:"rating_5"`
+  Rating4           int                 `gorm:"type:INTEGER;default:0" json:"rating_4"`
+  Rating3           int                 `gorm:"type:INTEGER;default:0" json:"rating_3"`
+  Rating2           int                 `gorm:"type:INTEGER;default:0" json:"rating_2"`
+  Rating1           int                 `gorm:"type:INTEGER;default:0" json:"rating_1"`
   Modules           []Modules           `gorm:"foreignKey:CourseID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE" json:"modules"`
   Reviews           []ReviewCourses     `gorm:"foreignKey:CourseID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE" json:"reviews"`
   CompletionCourses []CompletionCourses `gorm:"foreignKey:CourseID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE" json:"completion_courses"`

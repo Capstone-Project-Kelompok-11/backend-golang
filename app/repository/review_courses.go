@@ -48,6 +48,11 @@ func (m *ReviewCourseRepository) FindAll(size int, page int, query any, args ...
   return m.Repository.FindAll(size, page, query, args...)
 }
 
+func (m *ReviewCourseRepository) CatchAll(size int, page int) ([]models.ReviewCourses, error) {
+
+  return m.Repository.CatchAll(size, page)
+}
+
 func (m *ReviewCourseRepository) Create(model *models.ReviewCourses) (*models.ReviewCourses, error) {
 
   return m.Repository.Create(model)
@@ -66,4 +71,9 @@ func (m *ReviewCourseRepository) Remove(query any, args ...any) error {
 func (m *ReviewCourseRepository) Delete(query any, args ...any) error {
 
   return m.Repository.Delete(query, args...)
+}
+
+func (m *ReviewCourseRepository) Unscoped() easy.RepositoryImpl[models.ReviewCourses] {
+
+  return m.Unscoped()
 }

@@ -48,6 +48,11 @@ func (c *CartRepository) FindAll(size int, page int, query any, args ...any) ([]
   return c.Repository.FindAll(size, page, query, args...)
 }
 
+func (c *CartRepository) CatchAll(size int, page int) ([]models.Carts, error) {
+
+  return c.Repository.CatchAll(size, page)
+}
+
 func (c *CartRepository) Create(model *models.Carts) (*models.Carts, error) {
 
   return c.Repository.Create(model)
@@ -66,4 +71,9 @@ func (c *CartRepository) Remove(query any, args ...any) error {
 func (c *CartRepository) Delete(query any, args ...any) error {
 
   return c.Repository.Delete(query, args...)
+}
+
+func (c *CartRepository) Unscoped() easy.RepositoryImpl[models.Carts] {
+
+  return c.Unscoped()
 }

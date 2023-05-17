@@ -18,7 +18,7 @@ func SwagSaveImageX256(ctx *swag.SwagContext, name string) error {
 
   if form, err = ctx.MultipartForm(); err != nil {
 
-    return ctx.BadRequest(kornet.Msg("request is not form-data", true))
+    return ctx.BadRequest(kornet.Msg("request has no multipart/form-data", true))
   }
 
   images := m.Keys([]string{
@@ -39,6 +39,12 @@ func SwagSaveImageX256(ctx *swag.SwagContext, name string) error {
 
         header := h[0]
         cTy := header.Header.Get("Content-Type")
+        cTy, _ = kornet.KSafeContentTy(cTy)
+
+        if name == "" {
+
+          name = SafePathName(header.Filename)
+        }
 
         if images.Contain(cTy) {
 
@@ -108,6 +114,12 @@ func SwagSaveImage(ctx *swag.SwagContext, name string) error {
 
         header := h[0]
         cTy := header.Header.Get("Content-Type")
+        cTy, _ = kornet.KSafeContentTy(cTy) // maybe some other value was embedded in the Content-Type header like 'size='
+
+        if name == "" {
+
+          name = SafePathName(header.Filename)
+        }
 
         if images.Contain(cTy) {
 
