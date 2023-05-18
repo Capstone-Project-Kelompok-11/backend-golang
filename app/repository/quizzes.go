@@ -75,5 +75,10 @@ func (m *QuizzesRepository) Delete(query any, args ...any) error {
 
 func (m *QuizzesRepository) Unscoped() easy.RepositoryImpl[models.Quizzes] {
 
-  return m.Unscoped()
+  return m.Repository.Unscoped()
+}
+
+func (m *QuizzesRepository) GORM() *gorm.DB {
+
+  return m.Repository.GORM()
 }

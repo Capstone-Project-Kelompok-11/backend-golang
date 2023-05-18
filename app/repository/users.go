@@ -1,6 +1,7 @@
 package repository
 
 import (
+  "errors"
   "gorm.io/gorm"
   "lms/app/models"
   "skfw/papaya/pigeon/easy"
@@ -12,6 +13,9 @@ type UserRepository struct {
 
 type UserRepositoryImpl interface {
   easy.RepositoryImpl[models.Users]
+  CatchAllCheckoutVerified(query any, args ...any) ([]models.Checkout, error)
+  CatchAllCheckoutNonVerified(query any, args ...any) ([]models.Checkout, error)
+  CatchAllCheckoutCancelled(query any, args ...any) ([]models.Checkout, error)
 }
 
 func UserRepositoryNew(DB *gorm.DB) (UserRepositoryImpl, error) {
@@ -75,5 +79,82 @@ func (u *UserRepository) Delete(query any, args ...any) error {
 
 func (u *UserRepository) Unscoped() easy.RepositoryImpl[models.Users] {
 
-  return u.Unscoped()
+  return u.Repository.Unscoped()
+}
+
+func (u *UserRepository) CatchAllCheckoutVerified(query any, args ...any) ([]models.Checkout, error) {
+
+  var err error
+
+  var users []models.Users
+  var checkouts []models.Checkout
+  users = make([]models.Users, 0)
+  checkouts = make([]models.Checkout, 0)
+
+  DB := u.Repository.GORM()
+
+  if err = DB.Preload("Checkout", "verify = ?", true).Where(query, args...).Find(&users).Error; err != nil {
+
+    return checkouts, errors.New("unable to catch all checkout from users")
+  }
+
+  if len(users) > 0 {
+
+    return users[0].Checkout, nil // checkouts
+  }
+
+  return checkouts, nil // empty checkouts
+}
+
+func (u *UserRepository) CatchAllCheckoutNonVerified(query any, args ...any) ([]models.Checkout, error) {
+
+  var err error
+
+  var users []models.Users
+  var checkouts []models.Checkout
+  users = make([]models.Users, 0)
+  checkouts = make([]models.Checkout, 0)
+
+  DB := u.Repository.GORM()
+
+  if err = DB.Preload("Checkout", "verify = ?", false).Where(query, args...).Find(&users).Error; err != nil {
+
+    return checkouts, errors.New("unable to catch all checkout from users")
+  }
+
+  if len(users) > 0 {
+
+    return users[0].Checkout, nil // checkouts
+  }
+
+  return checkouts, nil // empty checkouts
+}
+
+func (u *UserRepository) CatchAllCheckoutCancelled(query any, args ...any) ([]models.Checkout, error) {
+
+  var err error
+
+  var users []models.Users
+  var checkouts []models.Checkout
+  users = make([]models.Users, 0)
+  checkouts = make([]models.Checkout, 0)
+
+  DB := u.Repository.GORM()
+
+  if err = DB.Preload("Checkout", "verify = ? AND deleted_at IS NOT NULL", false).Where(query, args...).Find(&users).Error; err != nil {
+
+    return checkouts, errors.New("unable to catch all checkout from users")
+  }
+
+  if len(users) > 0 {
+
+    return users[0].Checkout, nil // checkouts
+  }
+
+  return checkouts, nil // empty checkouts
+}
+
+func (u *UserRepository) GORM() *gorm.DB {
+
+  return u.Repository.GORM()
 }

@@ -168,31 +168,6 @@ func AnonymController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
       return ctx.InternalServerError(kornet.Msg(err.Error(), true))
     }
 
-    res := make([]m.KMapImpl, 0)
-
-    for _, course := range data {
-
-      res = append(res, &m.KMap{
-        "id":          course.Model.ID,
-        "name":        course.Name,
-        "description": course.Description,
-        "thumbnail":   course.Thumbnail,
-        "video":       course.Video,
-        "document":    course.Document,
-        "price":       course.Price,
-        "level":       course.Level,
-        "rating": util.RatingView(util.Rating{
-          Rating1: course.Rating1,
-          Rating2: course.Rating2,
-          Rating3: course.Rating3,
-          Rating4: course.Rating4,
-          Rating5: course.Rating5,
-        }),
-        "finished": 0,
-        "members":  0,
-      })
-    }
-
-    return ctx.OK(kornet.ResultNew(kornet.MessageNew("catch all courses", false), res))
+    return ctx.OK(kornet.ResultNew(kornet.MessageNew("catch all courses", false), util.CourseDataCollective(data)))
   })
 }

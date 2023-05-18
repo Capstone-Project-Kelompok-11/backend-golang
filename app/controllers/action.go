@@ -1,13 +1,17 @@
 package controllers
 
 import (
+  "database/sql"
+  "encoding/json"
   "lms/app/models"
   "lms/app/repository"
   "skfw/papaya"
   "skfw/papaya/bunny/swag"
   "skfw/papaya/koala/kornet"
-  "skfw/papaya/koala/mapping"
+  m "skfw/papaya/koala/mapping"
   mo "skfw/papaya/pigeon/templates/basicAuth/models"
+  "skfw/papaya/pigeon/templates/basicAuth/util"
+  "time"
 )
 
 func ActionController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
@@ -17,12 +21,12 @@ func ActionController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
 
   userRepo, _ := repository.UserRepositoryNew(DB)
 
-  router.Get("/userinfo", &mapping.KMap{
+  router.Get("/info", &m.KMap{
     "AuthToken":   true,
     "description": "Catch User Information",
     "request":     nil,
     "responses": swag.OkJSON(&kornet.Result{
-      Data: &mapping.KMap{
+      Data: &m.KMap{
         "name":         "string",
         "username":     "string",
         "email":        "string",
@@ -35,7 +39,7 @@ func ActionController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
         "postal_code":  "string",
         "verify":       "boolean",
         "admin":        "boolean",
-        "balance":      "decimal",
+        "balance":      "number",
       },
     }),
   }, func(ctx *swag.SwagContext) error {
@@ -50,7 +54,7 @@ func ActionController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
         // get full user information
         if user, err = userRepo.Find("id = ?", userModel.ID); user != nil {
 
-          return ctx.OK(kornet.ResultNew(kornet.MessageNew("successful get user information", false), &mapping.KMap{
+          return ctx.OK(kornet.ResultNew(kornet.MessageNew("successful get user information", false), &m.KMap{
             "name":         user.Name.String,
             "username":     user.Username,
             "email":        user.Email,
@@ -72,5 +76,144 @@ func ActionController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
     }
 
     return ctx.InternalServerError(kornet.Msg("unable to get user information", true))
+  })
+
+  router.Post("/info", &m.KMap{
+    "AuthToken":   true,
+    "description": "Update User Information",
+    "request": &m.KMap{
+      "body": swag.JSON(&m.KMap{
+        "name":         "string",
+        "username":     "string",
+        "gender":       "string",
+        "phone":        "string",
+        "dob":          "string",
+        "address":      "string",
+        "country_code": "string",
+        "city":         "string",
+        "postal_code":  "string",
+      }),
+    },
+    "responses": swag.OkJSON(&kornet.Result{}),
+  }, func(ctx *swag.SwagContext) error {
+
+    var err error
+    var user *models.Users
+    var body m.KMapImpl
+    var dobT time.Time
+
+    if ctx.Event() {
+
+      if userModel, ok := ctx.Target().(*mo.UserModel); ok {
+
+        kReq, _ := ctx.Kornet()
+
+        body = &m.KMap{}
+
+        if err = json.Unmarshal(kReq.Body.ReadAll(), body); err != nil {
+
+          return ctx.InternalServerError(kornet.Msg("unable to parsing request body", true))
+        }
+
+        name := m.KValueToString(body.Get("name"))
+        username := m.KValueToString(body.Get("username"))
+        gender := m.KValueToString(body.Get("gender"))
+        phone := m.KValueToString(body.Get("phone"))
+        dob := m.KValueToString(body.Get("dob"))
+        address := m.KValueToString(body.Get("address"))
+        countryCode := m.KValueToString(body.Get("country_code"))
+        city := m.KValueToString(body.Get("city"))
+        postalCode := m.KValueToString(body.Get("postal_code"))
+
+        //time.Parsing
+        if dobT, err = time.Parse(time.RFC3339, dob); err != nil {
+
+          return ctx.BadRequest(kornet.Msg("unable to parse date of birthday", true))
+        }
+
+        // get full user information
+        if user, err = userRepo.Find("id = ?", userModel.ID); user != nil {
+
+          user.Name = sql.NullString{String: name, Valid: true}
+          user.Username = username
+          user.Gender = sql.NullString{String: gender, Valid: true}
+          user.Phone = sql.NullString{String: phone, Valid: true}
+          user.DOB = sql.NullTime{Time: dobT, Valid: true}
+          user.Address = sql.NullString{String: address, Valid: true}
+          user.CountryCode = sql.NullString{String: countryCode, Valid: true}
+          user.City = sql.NullString{String: city, Valid: true}
+          user.PostalCode = sql.NullString{String: postalCode, Valid: true}
+
+          if err = userRepo.Update(user, "id = ?", user.ID); err != nil {
+
+            return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+          }
+
+          return ctx.OK(kornet.Msg("successful update user information", false))
+        }
+
+        return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+      }
+    }
+
+    return ctx.InternalServerError(kornet.Msg("unable to get user information", true))
+  })
+
+  router.Post("/change/password", &m.KMap{
+    "AuthToken":   true,
+    "description": "Change User Password",
+    "request": &m.KMap{
+      "body": swag.JSON(&m.KMap{
+        "password": "string",
+      }),
+    },
+    "responses": swag.OkJSON(&kornet.Result{}),
+  }, func(ctx *swag.SwagContext) error {
+
+    var err error
+    var pass string
+    var user *models.Users
+    var body m.KMapImpl
+
+    if ctx.Event() {
+
+      if userModel, ok := ctx.Target().(*mo.UserModel); ok {
+
+        kReq, _ := ctx.Kornet()
+
+        body = &m.KMap{}
+
+        if err = json.Unmarshal(kReq.Body.ReadAll(), body); err != nil {
+
+          return ctx.InternalServerError(kornet.Msg("unable to parsing request body", true))
+        }
+
+        password := m.KValueToString(body.Get("password"))
+
+        // get full user information
+        if user, err = userRepo.Find("id = ?", userModel.ID); user != nil {
+
+          if pass, err = util.HashPassword(password); err != nil {
+
+            return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+          }
+
+          user.Password = pass
+
+          if err = userRepo.Update(user, "id = ?", user.ID); err != nil {
+
+            return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+          }
+
+          return ctx.OK(kornet.Msg("successful change user password", false))
+        }
+
+        return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+      }
+
+    }
+
+    return ctx.InternalServerError(kornet.Msg("unable to get user information", true))
+
   })
 }

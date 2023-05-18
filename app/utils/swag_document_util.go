@@ -8,13 +8,15 @@ import (
   m "skfw/papaya/koala/mapping"
 )
 
-func SwagSaveDocument(ctx *swag.SwagContext, name string) error {
+func SwagSaveDocument(ctx *swag.SwagContext, name string, catchFileNameCallback CatchFileNameCallback) error {
 
   var err error
 
   var form *multipart.Form
   var extensions []string
   var ext string
+
+  var fileNameChange bool
 
   if form, err = ctx.MultipartForm(); err != nil {
 
@@ -43,6 +45,8 @@ func SwagSaveDocument(ctx *swag.SwagContext, name string) error {
 
   for k, h := range form.File {
 
+    fileNameChange = false
+
     switch k {
     case "doc", "document":
 
@@ -55,6 +59,7 @@ func SwagSaveDocument(ctx *swag.SwagContext, name string) error {
         if name == "" {
 
           name = SafePathName(header.Filename)
+          fileNameChange = true
         }
 
         if documents.Contain(cTy) {
@@ -70,6 +75,14 @@ func SwagSaveDocument(ctx *swag.SwagContext, name string) error {
 
             ext = extensions[n-1] // the last thing maybe a good choice
             output := "assets/public/documents/" + name + ext
+
+            if fileNameChange {
+
+              if err = catchFileNameCallback(name + ext); err != nil {
+
+                return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+              }
+            }
 
             return SaveDocument(k, output)(ctx.Ctx)
           }

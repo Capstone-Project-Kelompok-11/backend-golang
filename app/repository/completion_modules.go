@@ -75,5 +75,10 @@ func (c *CompletionModuleRepository) Delete(query any, args ...any) error {
 
 func (c *CompletionModuleRepository) Unscoped() easy.RepositoryImpl[models.CompletionModules] {
 
-  return c.Unscoped()
+  return c.Repository.Unscoped()
+}
+
+func (c *CompletionModuleRepository) GORM() *gorm.DB {
+
+  return c.Repository.GORM()
 }

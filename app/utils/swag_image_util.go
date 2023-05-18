@@ -8,13 +8,14 @@ import (
   m "skfw/papaya/koala/mapping"
 )
 
-func SwagSaveImageX256(ctx *swag.SwagContext, name string) error {
+func SwagSaveImageX256(ctx *swag.SwagContext, name string, catchFileNameCallback CatchFileNameCallback) error {
 
   var err error
 
   var form *multipart.Form
   var extensions []string
   var ext string
+  var fileNameChange bool
 
   if form, err = ctx.MultipartForm(); err != nil {
 
@@ -32,6 +33,8 @@ func SwagSaveImageX256(ctx *swag.SwagContext, name string) error {
 
   for k, h := range form.File {
 
+    fileNameChange = false
+
     switch k {
     case "img", "image", "draw", "drawing":
 
@@ -44,6 +47,7 @@ func SwagSaveImageX256(ctx *swag.SwagContext, name string) error {
         if name == "" {
 
           name = SafePathName(header.Filename)
+          fileNameChange = true
         }
 
         if images.Contain(cTy) {
@@ -59,6 +63,14 @@ func SwagSaveImageX256(ctx *swag.SwagContext, name string) error {
 
             ext = ".png" // force use PNG formatter
             output := "assets/public/images/" + name + ext
+
+            if fileNameChange {
+
+              if err = catchFileNameCallback(name + ext); err != nil {
+
+                return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+              }
+            }
 
             return SaveImageX256(k, ext, output)(ctx.Ctx)
           }
@@ -83,13 +95,14 @@ func SwagSaveImageX256(ctx *swag.SwagContext, name string) error {
   return ctx.InternalServerError(kornet.Msg("something wrong", true))
 }
 
-func SwagSaveImage(ctx *swag.SwagContext, name string) error {
+func SwagSaveImage(ctx *swag.SwagContext, name string, catchFileNameCallback CatchFileNameCallback) error {
 
   var err error
 
   var form *multipart.Form
   var extensions []string
   var ext string
+  var fileNameChange bool
 
   if form, err = ctx.MultipartForm(); err != nil {
 
@@ -107,6 +120,8 @@ func SwagSaveImage(ctx *swag.SwagContext, name string) error {
 
   for k, h := range form.File {
 
+    fileNameChange = false
+
     switch k {
     case "img", "image", "draw", "drawing":
 
@@ -119,6 +134,7 @@ func SwagSaveImage(ctx *swag.SwagContext, name string) error {
         if name == "" {
 
           name = SafePathName(header.Filename)
+          fileNameChange = true
         }
 
         if images.Contain(cTy) {
@@ -134,6 +150,14 @@ func SwagSaveImage(ctx *swag.SwagContext, name string) error {
 
             ext = extensions[n-1] // the last thing maybe a good choice
             output := "assets/public/images/" + name + ext
+
+            if fileNameChange {
+
+              if err = catchFileNameCallback(name + ext); err != nil {
+
+                return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+              }
+            }
 
             return SaveImage(k, ext, output)(ctx.Ctx)
           }

@@ -52,7 +52,12 @@ func AdminController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
 
           if check.Thumbnail != "" {
 
-            return util.SwagSaveImage(ctx, check.Thumbnail)
+            return util.SwagSaveImage(ctx, check.Thumbnail, func(name string) error {
+
+              check.Thumbnail = name
+
+              return courseRepo.Update(check, "id = ?", check.ID)
+            })
           }
 
           return ctx.BadRequest(kornet.Msg("unknown file name to save", true))
@@ -91,7 +96,12 @@ func AdminController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
 
           if check.Document != "" {
 
-            return util.SwagSaveDocument(ctx, check.Document)
+            return util.SwagSaveDocument(ctx, check.Document, func(name string) error {
+
+              check.Document = name
+
+              return courseRepo.Update(check, "id = ?", check.ID)
+            })
           }
 
           return ctx.BadRequest(kornet.Msg("unknown file name to save", true))
@@ -124,13 +134,18 @@ func AdminController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
 
         kReq, _ := ctx.Kornet()
 
-        courseId := m.KValueToString(kReq.Query.Get("id"))
+        moduleId := m.KValueToString(kReq.Query.Get("id"))
 
-        if check, _ := moduleRepo.Find("id = ?", courseId); check != nil {
+        if check, _ := moduleRepo.Find("id = ?", moduleId); check != nil {
 
           if check.Thumbnail != "" {
 
-            return util.SwagSaveImage(ctx, check.Thumbnail)
+            return util.SwagSaveImage(ctx, check.Thumbnail, func(name string) error {
+
+              check.Thumbnail = name
+
+              return moduleRepo.Update(check, "id = ?", check.ID)
+            })
           }
 
           return ctx.BadRequest(kornet.Msg("unknown file name to save", true))
@@ -163,13 +178,18 @@ func AdminController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
 
         kReq, _ := ctx.Kornet()
 
-        courseId := m.KValueToString(kReq.Query.Get("id"))
+        moduleId := m.KValueToString(kReq.Query.Get("id"))
 
-        if check, _ := moduleRepo.Find("id = ?", courseId); check != nil {
+        if check, _ := moduleRepo.Find("id = ?", moduleId); check != nil {
 
           if check.Document != "" {
 
-            return util.SwagSaveDocument(ctx, check.Document)
+            return util.SwagSaveDocument(ctx, check.Document, func(name string) error {
+
+              check.Document = name
+
+              return moduleRepo.Update(check, "id = ?", check.ID)
+            })
           }
 
           return ctx.BadRequest(kornet.Msg("unknown file name to save", true))

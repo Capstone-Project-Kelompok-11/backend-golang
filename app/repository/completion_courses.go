@@ -75,5 +75,10 @@ func (c *CompletionCourseRepository) Delete(query any, args ...any) error {
 
 func (c *CompletionCourseRepository) Unscoped() easy.RepositoryImpl[models.CompletionCourses] {
 
-  return c.Unscoped()
+  return c.Repository.Unscoped()
+}
+
+func (c *CompletionCourseRepository) GORM() *gorm.DB {
+
+  return c.Repository.GORM()
 }

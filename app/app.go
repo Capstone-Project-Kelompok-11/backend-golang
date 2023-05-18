@@ -31,12 +31,10 @@ func App(pn papaya.NetImpl) error {
   mainGroup := swagger.Group("/api/v1", "Schema")
 
   anonymGroup := mainGroup.Group("/public", "Anonymous")
-  actionGroup := mainGroup.Group("/action", "Action")
   adminGroup := mainGroup.Group("/admin", "Administration")
-  userGroup := mainGroup.Group("/users", "Authentication")
+  userGroup := mainGroup.Group("/users", "User Management")
 
   anonymRouter := anonymGroup.Router()
-  actionRouter := actionGroup.Router()
   adminRouter := adminGroup.Router()
   userRouter := userGroup.Router()
 
@@ -49,7 +47,8 @@ func App(pn papaya.NetImpl) error {
   basicAuth := bac.BasicAuthNew(conn, expired, activeDuration, maxSessions)
   basicAuth.Bind(swagger, userRouter)
 
-  controllers.ActionController(pn, actionRouter)
+  controllers.ActionController(pn, userRouter)
+  controllers.CheckoutController(pn, userRouter)
   controllers.AdminController(pn, adminRouter)
 
   swagger.AddTask(tasks.MakeAdminTask())
@@ -65,8 +64,7 @@ func App(pn papaya.NetImpl) error {
     &models.ReviewCourses{},
     &models.CompletionCourses{},
     &models.CompletionModules{},
-    &models.Transactions{},
-    &models.Carts{},
+    &models.Checkout{},
   )
 
   factory.AdminFactory(pn) // set admin factory
