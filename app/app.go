@@ -59,6 +59,7 @@ func App(pn papaya.NetImpl) error {
     &models.Categories{},
     &models.Courses{},
     &models.CategoryCourses{},
+    &models.Assignments{},
     &models.Modules{},
     &models.Quizzes{},
     &models.ReviewCourses{},
