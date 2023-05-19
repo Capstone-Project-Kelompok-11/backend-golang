@@ -90,7 +90,7 @@ func AnonymController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
         }
       }
 
-      return ctx.BadRequest(kornet.Msg("image not found", true))
+      return ctx.BadRequest(kornet.Msg("document not found", true))
     }
 
     return ctx.BadRequest(kornet.Msg("invalid path", true))

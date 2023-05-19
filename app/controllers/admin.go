@@ -50,17 +50,61 @@ func AdminController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
 
         if check, _ := courseRepo.Find("id = ?", courseId); check != nil {
 
+          return util.SwagSaveImage(ctx, check.Thumbnail, func(name string) error {
+
+            check.Thumbnail = name
+
+            return courseRepo.Update(check, "id = ?", check.ID)
+          })
+        }
+
+        return ctx.BadRequest(kornet.Msg("course not found", true))
+      }
+    }
+
+    return ctx.InternalServerError(kornet.Msg("unable to get user information", true))
+  })
+
+  router.Delete("/course/thumbnail", &m.KMap{
+    "AuthToken":   true,
+    "Admin":       true,
+    "description": "Delete Course Thumbnail",
+    "request": &m.KMap{
+      "params": &m.KMap{
+        "id": "string",
+      },
+    },
+    "responses": swag.OkJSON(&kornet.Message{}),
+  }, func(ctx *swag.SwagContext) error {
+
+    var err error
+
+    if ctx.Event() {
+
+      if user, ok := ctx.Target().(*mo.UserModel); ok {
+
+        pp.Void(user)
+
+        kReq, _ := ctx.Kornet()
+
+        courseId := m.KValueToString(kReq.Query.Get("id"))
+
+        if check, _ := courseRepo.Find("id = ?", courseId); check != nil {
+
           if check.Thumbnail != "" {
 
-            return util.SwagSaveImage(ctx, check.Thumbnail, func(name string) error {
+            name := check.Thumbnail
+            check.Thumbnail = ""
 
-              check.Thumbnail = name
+            if err = courseRepo.Update(check, "id = ?", check.ID); err != nil {
 
-              return courseRepo.Update(check, "id = ?", check.ID)
-            })
+              return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+            }
+
+            return util.SwagRemoveImage(ctx, name)
           }
 
-          return ctx.BadRequest(kornet.Msg("unknown file name to save", true))
+          return ctx.BadRequest(kornet.Msg("thumbnail already removed", true))
         }
 
         return ctx.BadRequest(kornet.Msg("course not found", true))
@@ -94,17 +138,61 @@ func AdminController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
 
         if check, _ := courseRepo.Find("id = ?", courseId); check != nil {
 
+          return util.SwagSaveDocument(ctx, check.Document, func(name string) error {
+
+            check.Document = name
+
+            return courseRepo.Update(check, "id = ?", check.ID)
+          })
+        }
+
+        return ctx.BadRequest(kornet.Msg("course not found", true))
+      }
+    }
+
+    return ctx.InternalServerError(kornet.Msg("unable to get user information", true))
+  })
+
+  router.Delete("/course/document", &m.KMap{
+    "AuthToken":   true,
+    "Admin":       true,
+    "description": "Delete Course Document",
+    "request": &m.KMap{
+      "params": &m.KMap{
+        "id": "string",
+      },
+    },
+    "responses": swag.OkJSON(&kornet.Message{}),
+  }, func(ctx *swag.SwagContext) error {
+
+    var err error
+
+    if ctx.Event() {
+
+      if user, ok := ctx.Target().(*mo.UserModel); ok {
+
+        pp.Void(user)
+
+        kReq, _ := ctx.Kornet()
+
+        courseId := m.KValueToString(kReq.Query.Get("id"))
+
+        if check, _ := courseRepo.Find("id = ?", courseId); check != nil {
+
           if check.Document != "" {
 
-            return util.SwagSaveDocument(ctx, check.Document, func(name string) error {
+            name := check.Document
+            check.Document = ""
 
-              check.Document = name
+            if err = courseRepo.Update(check, "id = ?", check.ID); err != nil {
 
-              return courseRepo.Update(check, "id = ?", check.ID)
-            })
+              return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+            }
+
+            return util.SwagRemoveDocument(ctx, name)
           }
 
-          return ctx.BadRequest(kornet.Msg("unknown file name to save", true))
+          return ctx.BadRequest(kornet.Msg("document already removed", true))
         }
 
         return ctx.BadRequest(kornet.Msg("course not found", true))
@@ -138,17 +226,12 @@ func AdminController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
 
         if check, _ := moduleRepo.Find("id = ?", moduleId); check != nil {
 
-          if check.Thumbnail != "" {
+          return util.SwagSaveImage(ctx, check.Thumbnail, func(name string) error {
 
-            return util.SwagSaveImage(ctx, check.Thumbnail, func(name string) error {
+            check.Thumbnail = name
 
-              check.Thumbnail = name
-
-              return moduleRepo.Update(check, "id = ?", check.ID)
-            })
-          }
-
-          return ctx.BadRequest(kornet.Msg("unknown file name to save", true))
+            return moduleRepo.Update(check, "id = ?", check.ID)
+          })
         }
 
         return ctx.BadRequest(kornet.Msg("course not found", true))
@@ -158,10 +241,59 @@ func AdminController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
     return ctx.InternalServerError(kornet.Msg("unable to get user information", true))
   })
 
+  router.Delete("/module/thumbnail", &m.KMap{
+    "AuthToken":   true,
+    "Admin":       true,
+    "description": "Delete Module Thumbnail",
+    "request": &m.KMap{
+      "params": &m.KMap{
+        "id": "string",
+      },
+    },
+    "responses": swag.OkJSON(&kornet.Message{}),
+  }, func(ctx *swag.SwagContext) error {
+
+    var err error
+
+    if ctx.Event() {
+
+      if user, ok := ctx.Target().(*mo.UserModel); ok {
+
+        pp.Void(user)
+
+        kReq, _ := ctx.Kornet()
+
+        moduleId := m.KValueToString(kReq.Query.Get("id"))
+
+        if check, _ := moduleRepo.Find("id = ?", moduleId); check != nil {
+
+          if check.Thumbnail != "" {
+
+            name := check.Thumbnail
+            check.Thumbnail = ""
+
+            if err = moduleRepo.Update(check, "id = ?", check.ID); err != nil {
+
+              return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+            }
+
+            return util.SwagRemoveImage(ctx, name)
+          }
+
+          return ctx.BadRequest(kornet.Msg("thumbnail already removed", true))
+        }
+
+        return ctx.BadRequest(kornet.Msg("module not found", true))
+      }
+    }
+
+    return ctx.InternalServerError(kornet.Msg("unable to get user information", true))
+  })
+
   router.Post("/module/document/upload", &m.KMap{
     "AuthToken":   true,
     "Admin":       true,
-    "description": "Upload Course Document",
+    "description": "Upload Module Document",
     "request": &m.KMap{
       "params": &m.KMap{
         "id": "string",
@@ -182,20 +314,64 @@ func AdminController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
 
         if check, _ := moduleRepo.Find("id = ?", moduleId); check != nil {
 
-          if check.Document != "" {
+          return util.SwagSaveDocument(ctx, check.Document, func(name string) error {
 
-            return util.SwagSaveDocument(ctx, check.Document, func(name string) error {
+            check.Document = name
 
-              check.Document = name
-
-              return moduleRepo.Update(check, "id = ?", check.ID)
-            })
-          }
-
-          return ctx.BadRequest(kornet.Msg("unknown file name to save", true))
+            return moduleRepo.Update(check, "id = ?", check.ID)
+          })
         }
 
         return ctx.BadRequest(kornet.Msg("course not found", true))
+      }
+    }
+
+    return ctx.InternalServerError(kornet.Msg("unable to get user information", true))
+  })
+
+  router.Delete("/module/document", &m.KMap{
+    "AuthToken":   true,
+    "Admin":       true,
+    "description": "Delete Module Document",
+    "request": &m.KMap{
+      "params": &m.KMap{
+        "id": "string",
+      },
+    },
+    "responses": swag.OkJSON(&kornet.Message{}),
+  }, func(ctx *swag.SwagContext) error {
+
+    var err error
+
+    if ctx.Event() {
+
+      if user, ok := ctx.Target().(*mo.UserModel); ok {
+
+        pp.Void(user)
+
+        kReq, _ := ctx.Kornet()
+
+        moduleId := m.KValueToString(kReq.Query.Get("id"))
+
+        if check, _ := moduleRepo.Find("id = ?", moduleId); check != nil {
+
+          if check.Document != "" {
+
+            name := check.Document
+            check.Document = ""
+
+            if err = moduleRepo.Update(check, "id = ?", check.ID); err != nil {
+
+              return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+            }
+
+            return util.SwagRemoveDocument(ctx, name)
+          }
+
+          return ctx.BadRequest(kornet.Msg("document already removed", true))
+        }
+
+        return ctx.BadRequest(kornet.Msg("module not found", true))
       }
     }
 
@@ -210,9 +386,7 @@ func AdminController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
       "body": swag.JSON(&m.KMap{
         "name":        "string",
         "description": "string",
-        "thumbnail?":  "string",
         "video?":      "string",
-        "document?":   "string",
         "price":       "number",
         "level":       "string",
       }),
@@ -238,9 +412,7 @@ func AdminController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
 
         name := m.KValueToString(body.Get("name"))
         description := m.KValueToString(body.Get("description"))
-        thumbnail := m.KValueToString(body.Get("thumbnail"))
         video := m.KValueToString(body.Get("video"))
-        document := m.KValueToString(body.Get("document"))
         level := m.KValueToString(body.Get("level"))
         price := decimal.NewFromInt(util.ValueToInt64(body.Get("price")))
 
@@ -254,9 +426,7 @@ func AdminController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
           UserID:      user.ID,
           Name:        name,
           Description: description,
-          Thumbnail:   thumbnail,
           Video:       video,
-          Document:    document,
           Level:       level,
           Price:       price,
         }); err != nil {
@@ -282,9 +452,7 @@ func AdminController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
       "body": swag.JSON(&m.KMap{
         "name":        "string",
         "description": "string",
-        "thumbnail?":  "string",
         "video?":      "string",
-        "document?":   "string",
         "price":       "number",
         "level":       "string",
       }),
@@ -392,9 +560,7 @@ func AdminController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
       "body": swag.JSON(&m.KMap{
         "name":        "string",
         "description": "string",
-        "thumbnail?":  "string",
         "video?":      "string",
-        "document?":   "string",
       }),
     },
     "responses": swag.CreatedJSON(&kornet.Message{}),
@@ -422,9 +588,7 @@ func AdminController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
 
         name := m.KValueToString(body.Get("name"))
         description := m.KValueToString(body.Get("description"))
-        thumbnail := m.KValueToString(body.Get("thumbnail"))
         video := m.KValueToString(body.Get("video"))
-        document := m.KValueToString(body.Get("document"))
 
         if _, err = courseRepo.Find("id = ?", courseId); err != nil {
 
@@ -441,9 +605,7 @@ func AdminController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
           CourseID:    courseId,
           Name:        name,
           Description: description,
-          Thumbnail:   thumbnail,
           Video:       video,
-          Document:    document,
         }); err != nil {
 
           return ctx.InternalServerError(kornet.Msg(err.Error(), true))
@@ -467,9 +629,7 @@ func AdminController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
       "body": swag.JSON(&m.KMap{
         "name":        "string",
         "description": "string",
-        "thumbnail?":  "string",
         "video?":      "string",
-        "document?":   "string",
       }),
     },
     "responses": swag.OkJSON(&kornet.Message{}),
@@ -497,17 +657,13 @@ func AdminController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
 
         name := m.KValueToString(body.Get("name"))
         description := m.KValueToString(body.Get("description"))
-        thumbnail := m.KValueToString(body.Get("thumbnail"))
         video := m.KValueToString(body.Get("video"))
-        document := m.KValueToString(body.Get("document"))
 
         if check, _ := moduleRepo.Find("id = ?", moduleId); check != nil {
 
           check.Name = name
           check.Description = description
-          check.Thumbnail = thumbnail
           check.Video = video
-          check.Document = document
 
           if err = moduleRepo.Update(check, "id = ?", check.ID); err != nil {
 

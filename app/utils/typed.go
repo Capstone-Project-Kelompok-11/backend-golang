@@ -1,3 +1,3 @@
 package util
 
-type CatchFileNameCallback func(name string) error
+type CatchFileNameCallback func(filename string) error

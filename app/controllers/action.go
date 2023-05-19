@@ -5,12 +5,14 @@ import (
   "encoding/json"
   "lms/app/models"
   "lms/app/repository"
+  util "lms/app/utils"
   "skfw/papaya"
   "skfw/papaya/bunny/swag"
   "skfw/papaya/koala/kornet"
   m "skfw/papaya/koala/mapping"
+  "skfw/papaya/koala/pp"
   mo "skfw/papaya/pigeon/templates/basicAuth/models"
-  "skfw/papaya/pigeon/templates/basicAuth/util"
+  bacx "skfw/papaya/pigeon/templates/basicAuth/util"
   "time"
 )
 
@@ -29,6 +31,7 @@ func ActionController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
       Data: &m.KMap{
         "name":         "string",
         "username":     "string",
+        "image":        "string",
         "email":        "string",
         "gender":       "string",
         "phone":        "string",
@@ -57,6 +60,7 @@ func ActionController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
           return ctx.OK(kornet.ResultNew(kornet.MessageNew("successful get user information", false), &m.KMap{
             "name":         user.Name.String,
             "username":     user.Username,
+            "image":        user.Image,
             "email":        user.Email,
             "gender":       user.Gender.String,
             "phone":        user.Phone.String,
@@ -193,7 +197,7 @@ func ActionController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
         // get full user information
         if user, err = userRepo.Find("id = ?", userModel.ID); user != nil {
 
-          if pass, err = util.HashPassword(password); err != nil {
+          if pass, err = bacx.HashPassword(password); err != nil {
 
             return ctx.InternalServerError(kornet.Msg(err.Error(), true))
           }
@@ -215,5 +219,42 @@ func ActionController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
 
     return ctx.InternalServerError(kornet.Msg("unable to get user information", true))
 
+  })
+
+  router.Post("/profile/image/upload", &m.KMap{
+    "AuthToken":   true,
+    "description": "Upload User Profile Image",
+    "request":     nil,
+    "responses":   swag.OkJSON(&kornet.Message{}),
+  }, func(ctx *swag.SwagContext) error {
+
+    var err error
+
+    if ctx.Event() {
+
+      if user, ok := ctx.Target().(*mo.UserModel); ok {
+
+        pp.Void(user)
+
+        if check, _ := userRepo.Find("id = ?", user.ID); check != nil {
+
+          if check.Image == "" {
+
+            check.Image, _ = util.GenUniqFileNameOutput("assets/public/images", "profile.png")
+
+            if err = userRepo.Update(check, "id = ?", check.ID); err != nil {
+
+              return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+            }
+          }
+
+          return util.SwagSaveImageX256(ctx, check.Image, nil)
+        }
+
+        return ctx.BadRequest(kornet.Msg("unable to get user information", true))
+      }
+    }
+
+    return ctx.InternalServerError(kornet.Msg("unable to get user information", true))
   })
 }

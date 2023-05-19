@@ -35,21 +35,22 @@ SET default_tablespace = '';
 SET default_table_access_method = heap;
 
 --
--- Name: carts; Type: TABLE; Schema: public; Owner: user
+-- Name: assignments; Type: TABLE; Schema: public; Owner: user
 --
 
-CREATE TABLE public.carts (
+CREATE TABLE public.assignments (
     id character varying(32) NOT NULL,
     created_at timestamp with time zone,
     updated_at timestamp with time zone,
     deleted_at timestamp with time zone,
     user_id character varying(32) NOT NULL,
-    transaction_id character varying(32),
-    qty bigint DEFAULT 0
+    course_id character varying(32) NOT NULL,
+    video text,
+    document text
 );
 
 
-ALTER TABLE public.carts OWNER TO "user";
+ALTER TABLE public.assignments OWNER TO "user";
 
 --
 -- Name: categories; Type: TABLE; Schema: public; Owner: user
@@ -85,10 +86,28 @@ CREATE TABLE public.category_courses (
 ALTER TABLE public.category_courses OWNER TO "user";
 
 --
--- Name: completions_courses; Type: TABLE; Schema: public; Owner: user
+-- Name: checkout; Type: TABLE; Schema: public; Owner: user
 --
 
-CREATE TABLE public.completions_courses (
+CREATE TABLE public.checkout (
+    id character varying(32) NOT NULL,
+    created_at timestamp with time zone,
+    updated_at timestamp with time zone,
+    deleted_at timestamp with time zone,
+    user_id character varying(32) NOT NULL,
+    course_id character varying(32) NOT NULL,
+    payment_method character varying(52) NOT NULL,
+    verify boolean DEFAULT false
+);
+
+
+ALTER TABLE public.checkout OWNER TO "user";
+
+--
+-- Name: completion_courses; Type: TABLE; Schema: public; Owner: user
+--
+
+CREATE TABLE public.completion_courses (
     id character varying(32) NOT NULL,
     created_at timestamp with time zone,
     updated_at timestamp with time zone,
@@ -99,13 +118,13 @@ CREATE TABLE public.completions_courses (
 );
 
 
-ALTER TABLE public.completions_courses OWNER TO "user";
+ALTER TABLE public.completion_courses OWNER TO "user";
 
 --
--- Name: completions_modules; Type: TABLE; Schema: public; Owner: user
+-- Name: completion_modules; Type: TABLE; Schema: public; Owner: user
 --
 
-CREATE TABLE public.completions_modules (
+CREATE TABLE public.completion_modules (
     id character varying(32) NOT NULL,
     created_at timestamp with time zone,
     updated_at timestamp with time zone,
@@ -117,7 +136,7 @@ CREATE TABLE public.completions_modules (
 );
 
 
-ALTER TABLE public.completions_modules OWNER TO "user";
+ALTER TABLE public.completion_modules OWNER TO "user";
 
 --
 -- Name: courses; Type: TABLE; Schema: public; Owner: user
@@ -134,15 +153,36 @@ CREATE TABLE public.courses (
     thumbnail text,
     price text,
     level text,
-    rating5 bigint,
-    rating4 bigint,
-    rating3 bigint,
-    rating2 bigint,
-    rating1 bigint
+    rating5 integer DEFAULT 0,
+    rating4 integer DEFAULT 0,
+    rating3 integer DEFAULT 0,
+    rating2 integer DEFAULT 0,
+    rating1 integer DEFAULT 0,
+    video text,
+    document text,
+    finished integer DEFAULT 0,
+    user_count integer DEFAULT 0
 );
 
 
 ALTER TABLE public.courses OWNER TO "user";
+
+--
+-- Name: events; Type: TABLE; Schema: public; Owner: user
+--
+
+CREATE TABLE public.events (
+    id character varying(32) NOT NULL,
+    created_at timestamp with time zone,
+    updated_at timestamp with time zone,
+    deleted_at timestamp with time zone,
+    user_id character varying(32) NOT NULL,
+    name text,
+    description text
+);
+
+
+ALTER TABLE public.events OWNER TO "user";
 
 --
 -- Name: modules; Type: TABLE; Schema: public; Owner: user
@@ -156,7 +196,9 @@ CREATE TABLE public.modules (
     course_id character varying(32) NOT NULL,
     name character varying(52) NOT NULL,
     description text,
-    thumbnail text
+    thumbnail text,
+    video text,
+    document text
 );
 
 
@@ -187,10 +229,10 @@ CREATE TABLE public.quizzes (
 ALTER TABLE public.quizzes OWNER TO "user";
 
 --
--- Name: reviews; Type: TABLE; Schema: public; Owner: user
+-- Name: review_courses; Type: TABLE; Schema: public; Owner: user
 --
 
-CREATE TABLE public.reviews (
+CREATE TABLE public.review_courses (
     id character varying(32) NOT NULL,
     created_at timestamp with time zone,
     updated_at timestamp with time zone,
@@ -202,7 +244,7 @@ CREATE TABLE public.reviews (
 );
 
 
-ALTER TABLE public.reviews OWNER TO "user";
+ALTER TABLE public.review_courses OWNER TO "user";
 
 --
 -- Name: sessions; Type: TABLE; Schema: public; Owner: user
@@ -226,23 +268,6 @@ CREATE TABLE public.sessions (
 ALTER TABLE public.sessions OWNER TO "user";
 
 --
--- Name: transactions; Type: TABLE; Schema: public; Owner: user
---
-
-CREATE TABLE public.transactions (
-    id character varying(32) NOT NULL,
-    created_at timestamp with time zone,
-    updated_at timestamp with time zone,
-    deleted_at timestamp with time zone,
-    user_id character varying(32) NOT NULL,
-    payment_method character varying(52) NOT NULL,
-    verify boolean DEFAULT false
-);
-
-
-ALTER TABLE public.transactions OWNER TO "user";
-
---
 -- Name: users; Type: TABLE; Schema: public; Owner: user
 --
 
@@ -264,18 +289,19 @@ CREATE TABLE public.users (
     postal_code character varying(10),
     verify boolean DEFAULT false,
     admin boolean DEFAULT false,
-    balance text DEFAULT '0'::text
+    balance text DEFAULT '0'::text,
+    image text
 );
 
 
 ALTER TABLE public.users OWNER TO "user";
 
 --
--- Name: carts carts_pkey; Type: CONSTRAINT; Schema: public; Owner: user
+-- Name: assignments assignments_pkey; Type: CONSTRAINT; Schema: public; Owner: user
 --
 
-ALTER TABLE ONLY public.carts
-    ADD CONSTRAINT carts_pkey PRIMARY KEY (id);
+ALTER TABLE ONLY public.assignments
+    ADD CONSTRAINT assignments_pkey PRIMARY KEY (id);
 
 
 --
@@ -303,19 +329,27 @@ ALTER TABLE ONLY public.category_courses
 
 
 --
--- Name: completions_courses completions_courses_pkey; Type: CONSTRAINT; Schema: public; Owner: user
+-- Name: checkout checkout_pkey; Type: CONSTRAINT; Schema: public; Owner: user
 --
 
-ALTER TABLE ONLY public.completions_courses
-    ADD CONSTRAINT completions_courses_pkey PRIMARY KEY (id);
+ALTER TABLE ONLY public.checkout
+    ADD CONSTRAINT checkout_pkey PRIMARY KEY (id);
 
 
 --
--- Name: completions_modules completions_modules_pkey; Type: CONSTRAINT; Schema: public; Owner: user
+-- Name: completion_courses completion_courses_pkey; Type: CONSTRAINT; Schema: public; Owner: user
 --
 
-ALTER TABLE ONLY public.completions_modules
-    ADD CONSTRAINT completions_modules_pkey PRIMARY KEY (id);
+ALTER TABLE ONLY public.completion_courses
+    ADD CONSTRAINT completion_courses_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: completion_modules completion_modules_pkey; Type: CONSTRAINT; Schema: public; Owner: user
+--
+
+ALTER TABLE ONLY public.completion_modules
+    ADD CONSTRAINT completion_modules_pkey PRIMARY KEY (id);
 
 
 --
@@ -332,6 +366,14 @@ ALTER TABLE ONLY public.courses
 
 ALTER TABLE ONLY public.courses
     ADD CONSTRAINT courses_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: events events_pkey; Type: CONSTRAINT; Schema: public; Owner: user
+--
+
+ALTER TABLE ONLY public.events
+    ADD CONSTRAINT events_pkey PRIMARY KEY (id);
 
 
 --
@@ -359,11 +401,11 @@ ALTER TABLE ONLY public.quizzes
 
 
 --
--- Name: reviews reviews_pkey; Type: CONSTRAINT; Schema: public; Owner: user
+-- Name: review_courses review_courses_pkey; Type: CONSTRAINT; Schema: public; Owner: user
 --
 
-ALTER TABLE ONLY public.reviews
-    ADD CONSTRAINT reviews_pkey PRIMARY KEY (id);
+ALTER TABLE ONLY public.review_courses
+    ADD CONSTRAINT review_courses_pkey PRIMARY KEY (id);
 
 
 --
@@ -391,14 +433,6 @@ ALTER TABLE ONLY public.sessions
 
 
 --
--- Name: transactions transactions_pkey; Type: CONSTRAINT; Schema: public; Owner: user
---
-
-ALTER TABLE ONLY public.transactions
-    ADD CONSTRAINT transactions_pkey PRIMARY KEY (id);
-
-
---
 -- Name: users users_email_key; Type: CONSTRAINT; Schema: public; Owner: user
 --
 
@@ -423,10 +457,10 @@ ALTER TABLE ONLY public.users
 
 
 --
--- Name: idx_carts_deleted_at; Type: INDEX; Schema: public; Owner: user
+-- Name: idx_assignments_deleted_at; Type: INDEX; Schema: public; Owner: user
 --
 
-CREATE INDEX idx_carts_deleted_at ON public.carts USING btree (deleted_at);
+CREATE INDEX idx_assignments_deleted_at ON public.assignments USING btree (deleted_at);
 
 
 --
@@ -444,17 +478,24 @@ CREATE INDEX idx_category_courses_deleted_at ON public.category_courses USING bt
 
 
 --
--- Name: idx_completions_courses_deleted_at; Type: INDEX; Schema: public; Owner: user
+-- Name: idx_checkout_deleted_at; Type: INDEX; Schema: public; Owner: user
 --
 
-CREATE INDEX idx_completions_courses_deleted_at ON public.completions_courses USING btree (deleted_at);
+CREATE INDEX idx_checkout_deleted_at ON public.checkout USING btree (deleted_at);
 
 
 --
--- Name: idx_completions_modules_deleted_at; Type: INDEX; Schema: public; Owner: user
+-- Name: idx_completion_courses_deleted_at; Type: INDEX; Schema: public; Owner: user
 --
 
-CREATE INDEX idx_completions_modules_deleted_at ON public.completions_modules USING btree (deleted_at);
+CREATE INDEX idx_completion_courses_deleted_at ON public.completion_courses USING btree (deleted_at);
+
+
+--
+-- Name: idx_completion_modules_deleted_at; Type: INDEX; Schema: public; Owner: user
+--
+
+CREATE INDEX idx_completion_modules_deleted_at ON public.completion_modules USING btree (deleted_at);
 
 
 --
@@ -462,6 +503,13 @@ CREATE INDEX idx_completions_modules_deleted_at ON public.completions_modules US
 --
 
 CREATE INDEX idx_courses_deleted_at ON public.courses USING btree (deleted_at);
+
+
+--
+-- Name: idx_events_deleted_at; Type: INDEX; Schema: public; Owner: user
+--
+
+CREATE INDEX idx_events_deleted_at ON public.events USING btree (deleted_at);
 
 
 --
@@ -479,10 +527,10 @@ CREATE INDEX idx_quizzes_deleted_at ON public.quizzes USING btree (deleted_at);
 
 
 --
--- Name: idx_reviews_deleted_at; Type: INDEX; Schema: public; Owner: user
+-- Name: idx_review_courses_deleted_at; Type: INDEX; Schema: public; Owner: user
 --
 
-CREATE INDEX idx_reviews_deleted_at ON public.reviews USING btree (deleted_at);
+CREATE INDEX idx_review_courses_deleted_at ON public.review_courses USING btree (deleted_at);
 
 
 --
@@ -490,13 +538,6 @@ CREATE INDEX idx_reviews_deleted_at ON public.reviews USING btree (deleted_at);
 --
 
 CREATE INDEX idx_sessions_deleted_at ON public.sessions USING btree (deleted_at);
-
-
---
--- Name: idx_transactions_deleted_at; Type: INDEX; Schema: public; Owner: user
---
-
-CREATE INDEX idx_transactions_deleted_at ON public.transactions USING btree (deleted_at);
 
 
 --
@@ -515,6 +556,14 @@ ALTER TABLE ONLY public.category_courses
 
 
 --
+-- Name: assignments fk_courses_assignments; Type: FK CONSTRAINT; Schema: public; Owner: user
+--
+
+ALTER TABLE ONLY public.assignments
+    ADD CONSTRAINT fk_courses_assignments FOREIGN KEY (course_id) REFERENCES public.courses(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
 -- Name: category_courses fk_courses_category_courses; Type: FK CONSTRAINT; Schema: public; Owner: user
 --
 
@@ -523,10 +572,18 @@ ALTER TABLE ONLY public.category_courses
 
 
 --
--- Name: completions_courses fk_courses_completion_courses; Type: FK CONSTRAINT; Schema: public; Owner: user
+-- Name: checkout fk_courses_checkout; Type: FK CONSTRAINT; Schema: public; Owner: user
 --
 
-ALTER TABLE ONLY public.completions_courses
+ALTER TABLE ONLY public.checkout
+    ADD CONSTRAINT fk_courses_checkout FOREIGN KEY (course_id) REFERENCES public.courses(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: completion_courses fk_courses_completion_courses; Type: FK CONSTRAINT; Schema: public; Owner: user
+--
+
+ALTER TABLE ONLY public.completion_courses
     ADD CONSTRAINT fk_courses_completion_courses FOREIGN KEY (course_id) REFERENCES public.courses(id) ON UPDATE CASCADE ON DELETE CASCADE;
 
 
@@ -539,50 +596,58 @@ ALTER TABLE ONLY public.modules
 
 
 --
--- Name: reviews fk_courses_reviews; Type: FK CONSTRAINT; Schema: public; Owner: user
+-- Name: review_courses fk_courses_reviews; Type: FK CONSTRAINT; Schema: public; Owner: user
 --
 
-ALTER TABLE ONLY public.reviews
+ALTER TABLE ONLY public.review_courses
     ADD CONSTRAINT fk_courses_reviews FOREIGN KEY (course_id) REFERENCES public.courses(id) ON UPDATE CASCADE ON DELETE CASCADE;
 
 
 --
--- Name: completions_modules fk_modules_completion_modules; Type: FK CONSTRAINT; Schema: public; Owner: user
+-- Name: completion_modules fk_modules_completion_modules; Type: FK CONSTRAINT; Schema: public; Owner: user
 --
 
-ALTER TABLE ONLY public.completions_modules
+ALTER TABLE ONLY public.completion_modules
     ADD CONSTRAINT fk_modules_completion_modules FOREIGN KEY (module_id) REFERENCES public.modules(id) ON UPDATE CASCADE ON DELETE CASCADE;
 
 
 --
--- Name: carts fk_transactions_carts; Type: FK CONSTRAINT; Schema: public; Owner: user
+-- Name: quizzes fk_modules_quizzes; Type: FK CONSTRAINT; Schema: public; Owner: user
 --
 
-ALTER TABLE ONLY public.carts
-    ADD CONSTRAINT fk_transactions_carts FOREIGN KEY (transaction_id) REFERENCES public.transactions(id) ON UPDATE CASCADE ON DELETE CASCADE;
-
-
---
--- Name: carts fk_users_carts; Type: FK CONSTRAINT; Schema: public; Owner: user
---
-
-ALTER TABLE ONLY public.carts
-    ADD CONSTRAINT fk_users_carts FOREIGN KEY (user_id) REFERENCES public.users(id) ON UPDATE CASCADE ON DELETE CASCADE;
+ALTER TABLE ONLY public.quizzes
+    ADD CONSTRAINT fk_modules_quizzes FOREIGN KEY (module_id) REFERENCES public.modules(id) ON UPDATE CASCADE ON DELETE CASCADE;
 
 
 --
--- Name: completions_courses fk_users_completion_courses; Type: FK CONSTRAINT; Schema: public; Owner: user
+-- Name: assignments fk_users_assignments; Type: FK CONSTRAINT; Schema: public; Owner: user
 --
 
-ALTER TABLE ONLY public.completions_courses
+ALTER TABLE ONLY public.assignments
+    ADD CONSTRAINT fk_users_assignments FOREIGN KEY (course_id) REFERENCES public.users(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: checkout fk_users_checkout; Type: FK CONSTRAINT; Schema: public; Owner: user
+--
+
+ALTER TABLE ONLY public.checkout
+    ADD CONSTRAINT fk_users_checkout FOREIGN KEY (user_id) REFERENCES public.users(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: completion_courses fk_users_completion_courses; Type: FK CONSTRAINT; Schema: public; Owner: user
+--
+
+ALTER TABLE ONLY public.completion_courses
     ADD CONSTRAINT fk_users_completion_courses FOREIGN KEY (user_id) REFERENCES public.users(id) ON UPDATE CASCADE ON DELETE CASCADE;
 
 
 --
--- Name: completions_modules fk_users_completion_modules; Type: FK CONSTRAINT; Schema: public; Owner: user
+-- Name: completion_modules fk_users_completion_modules; Type: FK CONSTRAINT; Schema: public; Owner: user
 --
 
-ALTER TABLE ONLY public.completions_modules
+ALTER TABLE ONLY public.completion_modules
     ADD CONSTRAINT fk_users_completion_modules FOREIGN KEY (user_id) REFERENCES public.users(id) ON UPDATE CASCADE ON DELETE CASCADE;
 
 
@@ -595,19 +660,19 @@ ALTER TABLE ONLY public.courses
 
 
 --
--- Name: reviews fk_users_reviews; Type: FK CONSTRAINT; Schema: public; Owner: user
+-- Name: events fk_users_events; Type: FK CONSTRAINT; Schema: public; Owner: user
 --
 
-ALTER TABLE ONLY public.reviews
+ALTER TABLE ONLY public.events
+    ADD CONSTRAINT fk_users_events FOREIGN KEY (user_id) REFERENCES public.users(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: review_courses fk_users_reviews; Type: FK CONSTRAINT; Schema: public; Owner: user
+--
+
+ALTER TABLE ONLY public.review_courses
     ADD CONSTRAINT fk_users_reviews FOREIGN KEY (user_id) REFERENCES public.users(id) ON UPDATE CASCADE ON DELETE CASCADE;
-
-
---
--- Name: transactions fk_users_transactions; Type: FK CONSTRAINT; Schema: public; Owner: user
---
-
-ALTER TABLE ONLY public.transactions
-    ADD CONSTRAINT fk_users_transactions FOREIGN KEY (user_id) REFERENCES public.users(id) ON UPDATE CASCADE ON DELETE CASCADE;
 
 
 --

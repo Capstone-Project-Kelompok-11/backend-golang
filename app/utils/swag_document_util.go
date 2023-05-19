@@ -3,9 +3,12 @@ package util
 import (
   "mime"
   "mime/multipart"
+  "os"
   "skfw/papaya/bunny/swag"
+  "skfw/papaya/koala/kio"
   "skfw/papaya/koala/kornet"
   m "skfw/papaya/koala/mapping"
+  "skfw/papaya/koala/tools/posix"
 )
 
 func SwagSaveDocument(ctx *swag.SwagContext, name string, catchFileNameCallback CatchFileNameCallback) error {
@@ -15,8 +18,9 @@ func SwagSaveDocument(ctx *swag.SwagContext, name string, catchFileNameCallback 
   var form *multipart.Form
   var extensions []string
   var ext string
-
   var fileNameChange bool
+
+  name = RemoveExtensionFromFileName(name)
 
   if form, err = ctx.MultipartForm(); err != nil {
 
@@ -56,11 +60,13 @@ func SwagSaveDocument(ctx *swag.SwagContext, name string, catchFileNameCallback 
         cTy := header.Header.Get("Content-Type")
         cTy, _ = kornet.KSafeContentTy(cTy) // maybe some other value was embedded in the Content-Type header like 'size='
 
-        if name == "" {
+        if SourceNetOrEmpty(name) {
 
-          name = SafePathName(header.Filename)
+          name = header.Filename
           fileNameChange = true
         }
+
+        name = SafePathName(name)
 
         if documents.Contain(cTy) {
 
@@ -74,13 +80,20 @@ func SwagSaveDocument(ctx *swag.SwagContext, name string, catchFileNameCallback 
           if n > 0 {
 
             ext = extensions[n-1] // the last thing maybe a good choice
-            output := "assets/public/documents/" + name + ext
+            filename := name + ext
+            dir := "assets/public/documents/"
+            output := posix.KPathNew(dir).JoinStr(filename)
 
             if fileNameChange {
 
-              if err = catchFileNameCallback(name + ext); err != nil {
+              filename, output = GenUniqFileNameOutput(dir, filename)
 
-                return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+              if catchFileNameCallback != nil {
+
+                if err = catchFileNameCallback(filename); err != nil {
+
+                  return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+                }
               }
             }
 
@@ -105,4 +118,29 @@ func SwagSaveDocument(ctx *swag.SwagContext, name string, catchFileNameCallback 
   }
 
   return ctx.InternalServerError(kornet.Msg("something wrong", true))
+}
+
+func SwagRemoveDocument(ctx *swag.SwagContext, filename string) error {
+
+  var err error
+
+  dir := "assets/public/documents/"
+  p := posix.KPathNew(dir).JoinStr(filename)
+  f := kio.KFileNew(p)
+  if f.IsExist() {
+
+    if f.IsFile() {
+
+      if err = os.Remove(p); err != nil {
+
+        return ctx.InternalServerError(kornet.Msg("unable to remove document", true))
+      }
+
+      return ctx.OK(kornet.Msg("document has been removed", false))
+    }
+
+    return ctx.InternalServerError(kornet.Msg("something error", true))
+  }
+
+  return ctx.BadRequest(kornet.Msg("document already removed", true))
 }

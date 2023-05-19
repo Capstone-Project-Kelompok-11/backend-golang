@@ -9,19 +9,90 @@ import (
   "image/jpeg"
   "image/png"
   "io"
+  "math/rand"
   "mime/multipart"
   "net/http"
   "os"
   "reflect"
+  "skfw/papaya/koala/kio"
   "skfw/papaya/koala/kornet"
   "skfw/papaya/koala/mapping"
   "skfw/papaya/koala/pp"
+  "skfw/papaya/koala/tools/posix"
   "strings"
+  "time"
 )
 
 var ImageLimitSize = 1024 * 1024 * 2    // 2MB
 var FileLimitSize = 1024 * 1024 * 2     // 2MB
 var DocumentLimitSize = 1024 * 1024 * 2 // 2MB
+
+func HexRand(size int) string {
+
+  temp := ""
+  digits := strings.Split("0123456789abcdef", "")
+  randomize := rand.New(rand.NewSource(time.Now().UnixNano()))
+  k := 1
+
+  min := 0
+  max := len(digits) - 1
+
+  for i := 0; i < size; i++ {
+
+    k = randomize.Intn(max-min+1) + min
+
+    temp += digits[k]
+  }
+
+  return temp
+}
+
+func CheckAvailableFileName(src string) bool {
+
+  return !kio.KFileNew(src).IsExist()
+}
+
+func GenUniqFileNameOutput(dir string, filename string) (string, string) { // filename, output
+
+  var output string
+
+  for {
+
+    // re-generate with randomize
+    filename = HexRand(7) + "." + filename
+    output = posix.KPathNew(dir).JoinStr(filename)
+
+    if !CheckAvailableFileName(output) {
+      continue
+    }
+
+    break
+  }
+
+  return filename, output
+}
+
+func SourceNetOrEmpty(src string) bool {
+
+  if src != "" {
+
+    return strings.HasPrefix(src, "http://") || strings.HasPrefix(src, "https://") || strings.HasPrefix(src, "ftp://")
+  }
+
+  return true // string is empty
+}
+
+func RemoveExtensionFromFileName(filename string) string {
+
+  if filename != "" {
+
+    tokens := strings.Split(filename, ".")
+    return strings.Join(tokens[:len(tokens)-1], ".")
+  }
+
+  // passing
+  return filename
+}
 
 func ValueToInt(value any) int {
 
@@ -108,6 +179,10 @@ func ValueToArrayStr(data any) []string {
 func SafePathName(name string) string {
 
   return strings.Map(func(r rune) rune {
+    if 48 <= r && r <= 57 {
+
+      return r // number only
+    }
     if 65 <= r && r <= 90 {
 
       return r + 32 // to lower
@@ -116,13 +191,11 @@ func SafePathName(name string) string {
 
       return r // keep lower
     }
-    if r == 32 {
-
-      return 45 // replace space with minus
-    }
-    if r == 46 {
-
-      return r // keep dot
+    switch r {
+    case 32: // replace <space> with "-"
+      return 45
+    case 45, 46, 95: // "-", ".", "_"
+      return r
     }
     return -1
   }, name)

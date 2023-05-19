@@ -3,9 +3,12 @@ package util
 import (
   "mime"
   "mime/multipart"
+  "os"
   "skfw/papaya/bunny/swag"
+  "skfw/papaya/koala/kio"
   "skfw/papaya/koala/kornet"
   m "skfw/papaya/koala/mapping"
+  "skfw/papaya/koala/tools/posix"
 )
 
 func SwagSaveImageX256(ctx *swag.SwagContext, name string, catchFileNameCallback CatchFileNameCallback) error {
@@ -16,6 +19,8 @@ func SwagSaveImageX256(ctx *swag.SwagContext, name string, catchFileNameCallback
   var extensions []string
   var ext string
   var fileNameChange bool
+
+  name = RemoveExtensionFromFileName(name)
 
   if form, err = ctx.MultipartForm(); err != nil {
 
@@ -44,11 +49,13 @@ func SwagSaveImageX256(ctx *swag.SwagContext, name string, catchFileNameCallback
         cTy := header.Header.Get("Content-Type")
         cTy, _ = kornet.KSafeContentTy(cTy)
 
-        if name == "" {
+        if SourceNetOrEmpty(name) {
 
-          name = SafePathName(header.Filename)
+          name = header.Filename
           fileNameChange = true
         }
+
+        name = SafePathName(name)
 
         if images.Contain(cTy) {
 
@@ -62,13 +69,20 @@ func SwagSaveImageX256(ctx *swag.SwagContext, name string, catchFileNameCallback
           if n > 0 {
 
             ext = ".png" // force use PNG formatter
-            output := "assets/public/images/" + name + ext
+            filename := name + ext
+            dir := "assets/public/images/"
+            output := posix.KPathNew(dir).JoinStr(filename)
 
             if fileNameChange {
 
-              if err = catchFileNameCallback(name + ext); err != nil {
+              filename, output = GenUniqFileNameOutput(dir, filename)
 
-                return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+              if catchFileNameCallback != nil {
+
+                if err = catchFileNameCallback(filename); err != nil {
+
+                  return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+                }
               }
             }
 
@@ -104,6 +118,8 @@ func SwagSaveImage(ctx *swag.SwagContext, name string, catchFileNameCallback Cat
   var ext string
   var fileNameChange bool
 
+  name = RemoveExtensionFromFileName(name)
+
   if form, err = ctx.MultipartForm(); err != nil {
 
     return ctx.BadRequest(kornet.Msg("request is not form-data", true))
@@ -131,11 +147,13 @@ func SwagSaveImage(ctx *swag.SwagContext, name string, catchFileNameCallback Cat
         cTy := header.Header.Get("Content-Type")
         cTy, _ = kornet.KSafeContentTy(cTy) // maybe some other value was embedded in the Content-Type header like 'size='
 
-        if name == "" {
+        if SourceNetOrEmpty(name) {
 
-          name = SafePathName(header.Filename)
+          name = header.Filename
           fileNameChange = true
         }
+
+        name = SafePathName(name)
 
         if images.Contain(cTy) {
 
@@ -149,13 +167,20 @@ func SwagSaveImage(ctx *swag.SwagContext, name string, catchFileNameCallback Cat
           if n > 0 {
 
             ext = extensions[n-1] // the last thing maybe a good choice
-            output := "assets/public/images/" + name + ext
+            filename := name + ext
+            dir := "assets/public/images/"
+            output := posix.KPathNew(dir).JoinStr(filename)
 
             if fileNameChange {
 
-              if err = catchFileNameCallback(name + ext); err != nil {
+              filename, output = GenUniqFileNameOutput(dir, filename)
 
-                return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+              if catchFileNameCallback != nil {
+
+                if err = catchFileNameCallback(filename); err != nil {
+
+                  return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+                }
               }
             }
 
@@ -180,4 +205,29 @@ func SwagSaveImage(ctx *swag.SwagContext, name string, catchFileNameCallback Cat
   }
 
   return ctx.InternalServerError(kornet.Msg("something wrong", true))
+}
+
+func SwagRemoveImage(ctx *swag.SwagContext, filename string) error {
+
+  var err error
+
+  dir := "assets/public/images/"
+  p := posix.KPathNew(dir).JoinStr(filename)
+  f := kio.KFileNew(p)
+  if f.IsExist() {
+
+    if f.IsFile() {
+
+      if err = os.Remove(p); err != nil {
+
+        return ctx.InternalServerError(kornet.Msg("unable to remove image", true))
+      }
+
+      return ctx.OK(kornet.Msg("image has been removed", false))
+    }
+
+    return ctx.InternalServerError(kornet.Msg("something error", true))
+  }
+
+  return ctx.BadRequest(kornet.Msg("image already removed", true))
 }

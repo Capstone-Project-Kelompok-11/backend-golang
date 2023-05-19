@@ -55,6 +55,7 @@ func App(pn papaya.NetImpl) error {
 
   DB.AutoMigrate(
     &models.Users{},
+    &models.Events{},
     &models.Sessions{},
     &models.Categories{},
     &models.Courses{},
