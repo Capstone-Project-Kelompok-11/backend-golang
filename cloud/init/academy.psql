@@ -161,7 +161,8 @@ CREATE TABLE public.courses (
     video text,
     document text,
     finished integer DEFAULT 0,
-    user_count integer DEFAULT 0
+    user_count integer DEFAULT 0,
+    member_count integer DEFAULT 0
 );
 
 
@@ -214,15 +215,7 @@ CREATE TABLE public.quizzes (
     updated_at timestamp with time zone,
     deleted_at timestamp with time zone,
     module_id character varying(32) NOT NULL,
-    question text,
-    choice_a character varying(200),
-    valid_a boolean,
-    choice_b character varying(200),
-    valid_b boolean,
-    choice_c character varying(200),
-    valid_c boolean,
-    choice_d character varying(200),
-    valid_d boolean
+    data text NOT NULL
 );
 
 
