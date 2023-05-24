@@ -12,6 +12,7 @@ import (
   "math/rand"
   "mime/multipart"
   "net/http"
+  "net/url"
   "os"
   "reflect"
   "skfw/papaya/koala/kio"
@@ -92,6 +93,33 @@ func RemoveExtensionFromFileName(filename string) string {
 
   // passing
   return filename
+}
+
+func SafeParseSearchAndSortOrder(search string, sort string) (string, string, error) {
+
+  var err error
+  search = strings.TrimSpace(search)
+  sort = strings.TrimSpace(sort)
+
+  if search, err = url.QueryUnescape(search); err != nil {
+
+    return search, sort, err
+  }
+
+  search = "%" + strings.ReplaceAll(search, " ", "%") + "%"
+  switch strings.ToLower(sort) {
+  case "asc", "ascending":
+    sort = "ASC"
+    break
+  case "desc", "descending":
+    sort = "DESC"
+    break
+  default:
+    sort = "ASC"
+    break
+  }
+
+  return search, sort, nil
 }
 
 func ValueToInt(value any) int {

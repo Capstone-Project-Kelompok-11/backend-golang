@@ -30,8 +30,12 @@ func CheckoutController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
   router.Get("/checkout/paid", &m.KMap{
     "AuthToken":   true,
     "description": "Catch All Checkout Verified",
-    "request":     nil,
-    "responses":   swag.OkJSON(&kornet.Result{}),
+    "request": m.KMap{
+      "headers": &m.KMap{
+        "Authorization": "string",
+      },
+    },
+    "responses": swag.OkJSON(&kornet.Result{}),
   }, func(ctx *swag.SwagContext) error {
 
     var err error
@@ -60,8 +64,12 @@ func CheckoutController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
   router.Get("/checkout/unpaid", &m.KMap{
     "AuthToken":   true,
     "description": "Catch All Checkout Non Verified",
-    "request":     nil,
-    "responses":   swag.OkJSON(&kornet.Result{}),
+    "request": m.KMap{
+      "headers": &m.KMap{
+        "Authorization": "string",
+      },
+    },
+    "responses": swag.OkJSON(&kornet.Result{}),
   }, func(ctx *swag.SwagContext) error {
 
     var err error
@@ -90,8 +98,12 @@ func CheckoutController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
   router.Get("/checkout/cancel", &m.KMap{
     "AuthToken":   true,
     "description": "Catch All Cancelling Checkout",
-    "request":     nil,
-    "responses":   swag.OkJSON(&kornet.Result{}),
+    "request": m.KMap{
+      "headers": &m.KMap{
+        "Authorization": "string",
+      },
+    },
+    "responses": swag.OkJSON(&kornet.Result{}),
   }, func(ctx *swag.SwagContext) error {
 
     var err error
@@ -125,6 +137,9 @@ func CheckoutController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
     "request": &m.KMap{
       "params": &m.KMap{
         "id": "string", // course id
+      },
+      "headers": &m.KMap{
+        "Authorization": "string",
       },
     },
   }, func(ctx *swag.SwagContext) error {
@@ -181,6 +196,9 @@ func CheckoutController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
       "params": &m.KMap{
         "id": "string", // course id
       },
+      "headers": &m.KMap{
+        "Authorization": "string",
+      },
     },
   }, func(ctx *swag.SwagContext) error {
 
@@ -229,11 +247,15 @@ func CheckoutController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
   router.Post("/checkout/verify", &m.KMap{
     "AuthToken":   true,
     "description": "Checkout Course",
+    "request": &m.KMap{
+      "headers": &m.KMap{
+        "Authorization": "string",
+      },
+    },
+    "responses": swag.OkJSON(&kornet.Result{}),
   }, func(ctx *swag.SwagContext) error {
 
     var err error
-    var course *models.Courses
-    var checkout *models.Checkout
 
     pp.Void(err)
 
@@ -241,32 +263,19 @@ func CheckoutController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
 
       if userModel, ok := ctx.Target().(*mo.UserModel); ok {
 
-        kReq, _ := ctx.Kornet()
+        // verified checkout
+        if err = checkoutRepo.PreloadVerifyByUserId(userModel.ID); err != nil {
 
-        courseId := m.KValueToString(kReq.Query.Get("id"))
-
-        // check course if not exists
-        if course, err = courseRepo.Find("id = ?", courseId); err != nil {
-
-          pp.Void(course)
-
-          return ctx.BadRequest(kornet.Msg("course not found", true))
+          return ctx.InternalServerError(kornet.Msg(err.Error(), true))
         }
 
-        // check checkout if exists
-        if checkout, err = checkoutRepo.Find("user_id = ?", userModel.ID); checkout != nil {
+        // update member count in course member active
+        if err = courseRepo.UpdateMemberCountByUserId(userModel.ID); err != nil {
 
-          checkout.Verify = true // verifying payment status
-
-          if err = checkoutRepo.Update(checkout, "id = ?", checkout.ID); err != nil {
-
-            return ctx.InternalServerError(kornet.Msg(err.Error(), true))
-          }
-
-          return ctx.OK(kornet.Msg("checkout verified", false))
+          return ctx.InternalServerError(kornet.Msg(err.Error(), true))
         }
 
-        return ctx.BadRequest(kornet.Msg("checkout not found", true))
+        return ctx.OK(kornet.Msg("checkout verified", false))
       }
     }
 

@@ -1,6 +1,8 @@
 package repository
 
 import (
+  "errors"
+  "fmt"
   "gorm.io/gorm"
   "lms/app/models"
   "skfw/papaya/pigeon/easy"
@@ -12,6 +14,7 @@ type CheckoutRepository struct {
 
 type CheckoutRepositoryImpl interface {
   easy.RepositoryImpl[models.Checkout]
+  PreloadVerifyByUserId(id string) error
 }
 
 func CheckoutRepositoryNew(DB *gorm.DB) (CheckoutRepositoryImpl, error) {
@@ -81,4 +84,18 @@ func (m *CheckoutRepository) Unscoped() easy.RepositoryImpl[models.Checkout] {
 func (m *CheckoutRepository) GORM() *gorm.DB {
 
   return m.Repository.GORM()
+}
+
+func (m *CheckoutRepository) PreloadVerifyByUserId(id string) error {
+
+  m.SessionNew()
+
+  var err error
+
+  if err = m.GORM().Where("user_id = ?", id).Update("verify", true).Error; err != nil {
+
+    return errors.New(fmt.Sprintf("unable to catch courses"))
+  }
+
+  return nil
 }

@@ -48,6 +48,7 @@ func App(pn papaya.NetImpl) error {
   basicAuth.Bind(swagger, userRouter)
 
   controllers.ActionController(pn, userRouter)
+  controllers.CourseController(pn, userRouter)
   controllers.CheckoutController(pn, userRouter)
   controllers.AdminController(pn, adminRouter)
 

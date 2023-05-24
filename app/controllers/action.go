@@ -26,7 +26,11 @@ func ActionController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
   router.Get("/info", &m.KMap{
     "AuthToken":   true,
     "description": "Catch User Information",
-    "request":     nil,
+    "request": m.KMap{
+      "headers": &m.KMap{
+        "Authorization": "string",
+      },
+    },
     "responses": swag.OkJSON(&kornet.Result{
       Data: &m.KMap{
         "name":         "string",
@@ -86,6 +90,9 @@ func ActionController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
     "AuthToken":   true,
     "description": "Update User Information",
     "request": &m.KMap{
+      "headers": &m.KMap{
+        "Authorization": "string",
+      },
       "body": swag.JSON(&m.KMap{
         "name":         "string",
         "username":     "string",
@@ -167,6 +174,9 @@ func ActionController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
     "AuthToken":   true,
     "description": "Change User Password",
     "request": &m.KMap{
+      "headers": &m.KMap{
+        "Authorization": "string",
+      },
       "body": swag.JSON(&m.KMap{
         "password": "string",
       }),
@@ -224,8 +234,12 @@ func ActionController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
   router.Post("/profile/image/upload", &m.KMap{
     "AuthToken":   true,
     "description": "Upload User Profile Image",
-    "request":     nil,
-    "responses":   swag.OkJSON(&kornet.Message{}),
+    "request": m.KMap{
+      "headers": &m.KMap{
+        "Authorization": "string",
+      },
+    },
+    "responses": swag.OkJSON(&kornet.Message{}),
   }, func(ctx *swag.SwagContext) error {
 
     var err error

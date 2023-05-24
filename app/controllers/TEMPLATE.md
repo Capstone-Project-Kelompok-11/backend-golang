@@ -6,46 +6,49 @@ router.Get("/path/:root", &m.KMap{
   "description": "Description",
   "request": &m.KMap{
     "params": &m.KMap{
-      "#root": "string",	
-      "size": "number",	
+      "#root": "string",
+      "size": "number",
+    },
+    "headers": &m.KMap{
+      "Authorization": "string",
     },
     "body": swag.JSON(&m.KMap{
       "name": "string",
     }),
   },
   "responses": swag.OkJSON(&kornet.Result{}),
-  func (ctx *swag.SwagContext) error {
+},
+func (ctx *swag.SwagContext) error {
 
-    var err error
+  var err error
 
-    pp.Void(err)
+  pp.Void(err)
 
-    if ctx.Event() {
+  if ctx.Event() {
 
-      if userModel, ok := ctx.Target().(*mo.UserModel); ok {
+    if userModel, ok := ctx.Target().(*mo.UserModel); ok {
 
-        pp.Void(userModel)
+      pp.Void(userModel)
 		
-        kReq, _ := ctx.Kornet()
+      kReq, _ := ctx.Kornet()
 		
-        body := &m.KMap
+      body := &m.KMap{}
 		
-        if err = json.Unmarshal(kReq.Body.ReadAll(), body); err != nil {
+      if err = json.Unmarshal(kReq.Body.ReadAll(), body); err != nil {
 
-          return ctx.InternalServerError(kornet.Msg("unable to parsing request body", true))
-        }
-		
-        root := m.KValueToString(kReq.Path.Get("root"))
-        size := util.ValueToInt(kReq.Path.Get("size"))
-        name := m.KValueToString(body.Get("name"))
-		
-        ...
-		
-        return ctx.Ok(kornet.Msg("pong", false))
+        return ctx.InternalServerError(kornet.Msg("unable to parsing request body", true))
       }
+		
+      root := m.KValueToString(kReq.Path.Get("root"))
+      size := util.ValueToInt(kReq.Path.Get("size"))
+      name := m.KValueToString(body.Get("name"))
+		
+      ...
+		
+      return ctx.OK(kornet.Msg("pong", false))
     }
-
-    return ctx.InternalServerError(kornet.Msg("unable to get user information", true))
   }
+
+  return ctx.InternalServerError(kornet.Msg("unable to get user information", true))
 })
 ```

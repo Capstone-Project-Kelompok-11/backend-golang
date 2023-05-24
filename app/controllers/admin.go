@@ -23,6 +23,7 @@ func AdminController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
   userRepo, _ := repository.UserRepositoryNew(DB)
   courseRepo, _ := repository.CourseRepositoryNew(DB)
   moduleRepo, _ := repository.ModuleRepositoryNew(DB)
+  quizRepo, _ := repository.QuizzesRepositoryNew(DB)
 
   pp.Void(userRepo)
 
@@ -33,6 +34,9 @@ func AdminController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
     "request": &m.KMap{
       "params": &m.KMap{
         "id": "string",
+      },
+      "headers": &m.KMap{
+        "Authorization": "string",
       },
     },
     "responses": swag.OkJSON(&kornet.Message{}),
@@ -72,6 +76,9 @@ func AdminController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
     "request": &m.KMap{
       "params": &m.KMap{
         "id": "string",
+      },
+      "headers": &m.KMap{
+        "Authorization": "string",
       },
     },
     "responses": swag.OkJSON(&kornet.Message{}),
@@ -122,6 +129,9 @@ func AdminController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
       "params": &m.KMap{
         "id": "string",
       },
+      "headers": &m.KMap{
+        "Authorization": "string",
+      },
     },
     "responses": swag.OkJSON(&kornet.Message{}),
   }, func(ctx *swag.SwagContext) error {
@@ -160,6 +170,9 @@ func AdminController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
     "request": &m.KMap{
       "params": &m.KMap{
         "id": "string",
+      },
+      "headers": &m.KMap{
+        "Authorization": "string",
       },
     },
     "responses": swag.OkJSON(&kornet.Message{}),
@@ -210,6 +223,9 @@ func AdminController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
       "params": &m.KMap{
         "id": "string",
       },
+      "headers": &m.KMap{
+        "Authorization": "string",
+      },
     },
     "responses": swag.OkJSON(&kornet.Message{}),
   }, func(ctx *swag.SwagContext) error {
@@ -248,6 +264,9 @@ func AdminController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
     "request": &m.KMap{
       "params": &m.KMap{
         "id": "string",
+      },
+      "headers": &m.KMap{
+        "Authorization": "string",
       },
     },
     "responses": swag.OkJSON(&kornet.Message{}),
@@ -298,6 +317,9 @@ func AdminController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
       "params": &m.KMap{
         "id": "string",
       },
+      "headers": &m.KMap{
+        "Authorization": "string",
+      },
     },
     "responses": swag.OkJSON(&kornet.Message{}),
   }, func(ctx *swag.SwagContext) error {
@@ -336,6 +358,9 @@ func AdminController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
     "request": &m.KMap{
       "params": &m.KMap{
         "id": "string",
+      },
+      "headers": &m.KMap{
+        "Authorization": "string",
       },
     },
     "responses": swag.OkJSON(&kornet.Message{}),
@@ -383,6 +408,9 @@ func AdminController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
     "Admin":       true,
     "description": "Create Course",
     "request": &m.KMap{
+      "headers": &m.KMap{
+        "Authorization": "string",
+      },
       "body": swag.JSON(&m.KMap{
         "name":        "string",
         "description": "string",
@@ -448,6 +476,9 @@ func AdminController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
     "request": &m.KMap{
       "params": &m.KMap{
         "id": "string",
+      },
+      "headers": &m.KMap{
+        "Authorization": "string",
       },
       "body": swag.JSON(&m.KMap{
         "name":        "string",
@@ -521,6 +552,9 @@ func AdminController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
       "params": &m.KMap{
         "id": "string",
       },
+      "headers": &m.KMap{
+        "Authorization": "string",
+      },
     },
     "responses": swag.OkJSON(&kornet.Message{}),
   }, func(ctx *swag.SwagContext) error {
@@ -556,6 +590,9 @@ func AdminController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
     "request": &m.KMap{
       "params": &m.KMap{
         "id": "string", // course id
+      },
+      "headers": &m.KMap{
+        "Authorization": "string",
       },
       "body": swag.JSON(&m.KMap{
         "name":        "string",
@@ -626,6 +663,9 @@ func AdminController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
       "params": &m.KMap{
         "id": "string", // module id
       },
+      "headers": &m.KMap{
+        "Authorization": "string",
+      },
       "body": swag.JSON(&m.KMap{
         "name":        "string",
         "description": "string",
@@ -688,6 +728,9 @@ func AdminController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
       "params": &m.KMap{
         "id": "string",
       },
+      "headers": &m.KMap{
+        "Authorization": "string",
+      },
     },
     "responses": swag.OkJSON(&kornet.Message{}),
   }, func(ctx *swag.SwagContext) error {
@@ -710,6 +753,153 @@ func AdminController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
         }
 
         return ctx.OK(kornet.Msg("successful delete module", false))
+      }
+    }
+
+    return ctx.InternalServerError(kornet.Msg("unable to get user information", true))
+  })
+
+  router.Post("/module/quiz", &m.KMap{
+    "AuthToken":   true,
+    "Admin":       true,
+    "description": "Create Module Quiz",
+    "request": &m.KMap{
+      "params": &m.KMap{
+        "id": "string", // module id
+      },
+      "headers": &m.KMap{
+        "Authorization": "string",
+      },
+      "body": swag.JSON(&m.KMap{
+        "quizzes": util.Quizzes{
+          util.Quiz{
+            Choices: util.Choices{
+              util.Choice{},
+            },
+          },
+        },
+      }),
+    },
+    "responses": swag.CreatedJSON(&kornet.Result{}),
+  }, func(ctx *swag.SwagContext) error {
+
+    var err error
+    var quizzes util.Quizzes
+
+    pp.Void(err)
+
+    if ctx.Event() {
+
+      if userModel, ok := ctx.Target().(*mo.UserModel); ok {
+
+        pp.Void(userModel)
+
+        kReq, _ := ctx.Kornet()
+
+        data := &m.KMap{}
+
+        if err = json.Unmarshal(kReq.Body.ReadAll(), data); err != nil {
+
+          return ctx.InternalServerError(kornet.Msg("unable to parsing request body", true))
+        }
+
+        moduleId := m.KValueToString(kReq.Query.Get("id"))
+
+        pp.Void(moduleId)
+
+        // re-parsing quizzes data, double-check
+        if quizzes, err = util.ParseQuizzes([]byte(m.KMapEncodeJSON(data.Get("quizzes")))); err != nil {
+
+          return ctx.InternalServerError(kornet.Msg("unable to parse quizzes", true))
+        }
+
+        dataQuizzes := m.KMapEncodeJSON(quizzes)
+
+        if _, err = quizRepo.Find("module_id = ?", moduleId); err != nil {
+
+          if _, err = quizRepo.Create(&models.Quizzes{
+            Model:    &easy.Model{},
+            ModuleID: moduleId,
+            Data:     dataQuizzes,
+          }); err != nil {
+
+            return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+          }
+
+          return ctx.Created(kornet.Msg("successful create new quizzes", false))
+        }
+
+        return ctx.BadRequest(kornet.Msg("quizzes already exists", true))
+      }
+    }
+
+    return ctx.InternalServerError(kornet.Msg("unable to get user information", true))
+  })
+
+  router.Get("/course", &m.KMap{
+    "AuthToken":   true,
+    "Admin":       true,
+    "description": "Catch All Course",
+    "request": m.KMap{
+      "params": &m.KMap{
+        "size":    "number",
+        "page":    "number",
+        "sort?":   "string",
+        "search?": "string",
+      },
+      "headers": &m.KMap{
+        "Authorization": "string",
+      },
+    },
+    "responses": swag.OkJSON([]m.KMapImpl{
+      &m.KMap{
+        "id":          "string",
+        "name":        "string",
+        "description": "string",
+        "thumbnail":   "string",
+        "video":       "string",
+        "document":    "string",
+        "price":       "number",
+        "level":       "string",
+        "rating":      "number",
+        "finished":    "number",
+        "members":     "number",
+        "modules":     []models.Modules{},
+      },
+    }),
+  }, func(ctx *swag.SwagContext) error {
+
+    var err error
+    var userModel *mo.UserModel
+    var data []models.Courses
+    var ok bool
+
+    if ctx.Event() {
+
+      if userModel, ok = ctx.Target().(*mo.UserModel); ok {
+
+        pp.Void(userModel)
+
+        kReq, _ := ctx.Kornet()
+
+        size := util.ValueToInt(kReq.Query.Get("size"))
+        page := util.ValueToInt(kReq.Query.Get("page"))
+        sort := m.KValueToString(kReq.Query.Get("sort"))
+        search := m.KValueToString(kReq.Query.Get("search"))
+
+        if search, sort, err = util.SafeParseSearchAndSortOrder(search, sort); err != nil {
+
+          return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+        }
+
+        if data, err = courseRepo.PreloadFindAllAndOrder(size, page, "courses.name "+sort, "courses.name LIKE ?", search); err != nil {
+
+          return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+        }
+
+        collective := util.CourseDataCollective(data)
+
+        return ctx.OK(kornet.ResultNew(kornet.MessageNew("catch full course", false), collective))
       }
     }
 

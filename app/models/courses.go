@@ -27,7 +27,7 @@ type Courses struct {
   Rating2           int                 `gorm:"type:INTEGER;default:0" json:"rating_2"`
   Rating1           int                 `gorm:"type:INTEGER;default:0" json:"rating_1"`
   Finished          int                 `gorm:"type:INTEGER;default:0" json:"finished"` // user has been finished this course
-  UserCount         int                 `gorm:"type:INTEGER;default:0" json:"user_count"`
+  MemberCount       int                 `gorm:"type:INTEGER;default:0" json:"member_count"`
   Modules           []Modules           `gorm:"foreignKey:CourseID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE" json:"modules"`
   Reviews           []ReviewCourses     `gorm:"foreignKey:CourseID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE" json:"reviews"`
   CompletionCourses []CompletionCourses `gorm:"foreignKey:CourseID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE" json:"completion_courses"`

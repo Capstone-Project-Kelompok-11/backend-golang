@@ -134,8 +134,10 @@ func AnonymController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
     "description": "Catch All Courses",
     "request": &m.KMap{
       "params": &m.KMap{
-        "page": "number",
-        "size": "number",
+        "page":    "number",
+        "size":    "number",
+        "search?": "string",
+        "sort?":   "string",
       },
     },
     "responses": swag.OkJSON([]m.KMapImpl{
@@ -162,10 +164,27 @@ func AnonymController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
 
     page := util.ValueToInt(kReq.Query.Get("page"))
     size := util.ValueToInt(kReq.Query.Get("size"))
+    search := m.KValueToString(kReq.Query.Get("search"))
+    sort := m.KValueToString(kReq.Query.Get("sort"))
 
-    if data, err = courseRepo.CatchAll(size, page); err != nil {
+    if search != "" {
 
-      return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+      if search, sort, err = util.SafeParseSearchAndSortOrder(search, sort); err != nil {
+
+        return ctx.BadRequest(kornet.Msg("unable to parse search", true))
+      }
+
+      if data, err = courseRepo.FindAllAndOrder(size, page, "name "+sort, "name LIKE ?", search); err != nil {
+
+        return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+      }
+
+    } else {
+
+      if data, err = courseRepo.CatchAll(size, page); err != nil {
+
+        return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+      }
     }
 
     return ctx.OK(kornet.ResultNew(kornet.MessageNew("catch all courses", false), util.CourseDataCollective(data)))
