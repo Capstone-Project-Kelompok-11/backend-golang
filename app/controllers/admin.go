@@ -759,6 +759,69 @@ func AdminController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
     return ctx.InternalServerError(kornet.Msg("unable to get user information", true))
   })
 
+  router.Get("/module/quiz", &m.KMap{
+    "AuthToken":   true,
+    "Admin":       true,
+    "description": "Create Module Quiz",
+    "request": &m.KMap{
+      "params": &m.KMap{
+        "id": "string", // module id
+      },
+      "headers": &m.KMap{
+        "Authorization": "string",
+      },
+    },
+    "responses": swag.CreatedJSON(&kornet.Result{
+      Data: util.Quizzes{
+        util.Quiz{
+          Choices: util.Choices{
+            util.Choice{},
+          },
+        },
+      },
+    }),
+  }, func(ctx *swag.SwagContext) error {
+
+    var err error
+    var quizzes *models.Quizzes
+
+    pp.Void(err)
+
+    if ctx.Event() {
+
+      if userModel, ok := ctx.Target().(*mo.UserModel); ok {
+
+        pp.Void(userModel)
+
+        kReq, _ := ctx.Kornet()
+
+        data := &m.KMap{}
+
+        if err = json.Unmarshal(kReq.Body.ReadAll(), data); err != nil {
+
+          return ctx.InternalServerError(kornet.Msg("unable to parsing request body", true))
+        }
+
+        moduleId := m.KValueToString(kReq.Query.Get("id"))
+
+        if quizzes, err = quizRepo.Find("module_id = ?", moduleId); quizzes != nil {
+
+          var dataQuizzes util.Quizzes
+          if dataQuizzes, err = util.ParseQuizzes([]byte(quizzes.Data)); err != nil {
+
+            return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+          }
+
+          return ctx.OK(kornet.ResultNew(kornet.MessageNew("catch full quizzes", false), dataQuizzes))
+        }
+
+        return ctx.BadRequest(kornet.Msg("quizzes not found", true))
+      }
+    }
+
+    return ctx.InternalServerError(kornet.Msg("unable to get user information", true))
+  })
+
   router.Post("/module/quiz", &m.KMap{
     "AuthToken":   true,
     "Admin":       true,
@@ -805,8 +868,6 @@ func AdminController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
 
         moduleId := m.KValueToString(kReq.Query.Get("id"))
 
-        pp.Void(moduleId)
-
         // re-parsing quizzes data, double-check
         if quizzes, err = util.ParseQuizzes([]byte(m.KMapEncodeJSON(data.Get("quizzes")))); err != nil {
 
@@ -830,6 +891,117 @@ func AdminController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
         }
 
         return ctx.BadRequest(kornet.Msg("quizzes already exists", true))
+      }
+    }
+
+    return ctx.InternalServerError(kornet.Msg("unable to get user information", true))
+  })
+
+  router.Put("/module/quiz", &m.KMap{
+    "AuthToken":   true,
+    "Admin":       true,
+    "description": "Update Module Quiz",
+    "request": &m.KMap{
+      "params": &m.KMap{
+        "id": "string", // module id
+      },
+      "headers": &m.KMap{
+        "Authorization": "string",
+      },
+      "body": swag.JSON(&m.KMap{
+        "quizzes": util.Quizzes{
+          util.Quiz{
+            Choices: util.Choices{
+              util.Choice{},
+            },
+          },
+        },
+      }),
+    },
+    "responses": swag.CreatedJSON(&kornet.Result{}),
+  }, func(ctx *swag.SwagContext) error {
+
+    var err error
+    var check *models.Quizzes
+    var quizzes util.Quizzes
+
+    if ctx.Event() {
+
+      if userModel, ok := ctx.Target().(*mo.UserModel); ok {
+
+        pp.Void(userModel)
+
+        kReq, _ := ctx.Kornet()
+
+        data := &m.KMap{}
+
+        if err = json.Unmarshal(kReq.Body.ReadAll(), data); err != nil {
+
+          return ctx.InternalServerError(kornet.Msg("unable to parsing request body", true))
+        }
+
+        moduleId := m.KValueToString(kReq.Query.Get("id"))
+
+        // re-parsing quizzes data, double-check
+        if quizzes, err = util.ParseQuizzes([]byte(m.KMapEncodeJSON(data.Get("quizzes")))); err != nil {
+
+          return ctx.InternalServerError(kornet.Msg("unable to parse quizzes", true))
+        }
+
+        dataQuizzes := m.KMapEncodeJSON(quizzes)
+
+        if check, err = quizRepo.Find("module_id = ?", moduleId); check != nil {
+
+          check.Data = dataQuizzes
+
+          if err = quizRepo.Update(check, "module_id = ?", moduleId); err != nil {
+
+            return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+          }
+
+          return ctx.OK(kornet.Msg("successful update quizzes", false))
+        }
+
+        return ctx.BadRequest(kornet.Msg("quizzes not found", true))
+      }
+    }
+
+    return ctx.InternalServerError(kornet.Msg("unable to get user information", true))
+  })
+
+  router.Delete("/module/quiz", &m.KMap{
+    "AuthToken":   true,
+    "Admin":       true,
+    "description": "Delete Module Quiz",
+    "request": &m.KMap{
+      "params": &m.KMap{
+        "id": "string", // module id
+      },
+      "headers": &m.KMap{
+        "Authorization": "string",
+      },
+    },
+    "responses": swag.CreatedJSON(&kornet.Result{}),
+  }, func(ctx *swag.SwagContext) error {
+
+    var err error
+
+    if ctx.Event() {
+
+      if userModel, ok := ctx.Target().(*mo.UserModel); ok {
+
+        pp.Void(userModel)
+
+        kReq, _ := ctx.Kornet()
+
+        moduleId := m.KValueToString(kReq.Query.Get("id"))
+
+        if err = quizRepo.Remove("module_id = ?", moduleId); err != nil {
+
+          return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+        }
+
+        return ctx.OK(kornet.Msg("successful delete quizzes", false))
       }
     }
 
@@ -892,7 +1064,7 @@ func AdminController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
           return ctx.InternalServerError(kornet.Msg(err.Error(), true))
         }
 
-        if data, err = courseRepo.PreloadFindAllAndOrder(size, page, "courses.name "+sort, "courses.name LIKE ?", search); err != nil {
+        if data, err = courseRepo.PreloadFindAllAndOrder(size, page, "name "+sort, "name LIKE ?", search); err != nil {
 
           return ctx.InternalServerError(kornet.Msg(err.Error(), true))
         }

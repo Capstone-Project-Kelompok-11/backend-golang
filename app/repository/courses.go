@@ -18,6 +18,7 @@ type CourseRepositoryImpl interface {
   PreloadFindAllAndOrder(size int, page int, sort string, query any, args ...any) ([]models.Courses, error)
   PreloadFind(query any, args ...any) (*models.Courses, error)
   UpdateMemberCountByUserId(id string) error
+  PreloadFindByCheckUserAndCourseId(userId string, courseId string) (*models.Courses, error)
 }
 
 func CourseRepositoryNew(DB *gorm.DB) (CourseRepositoryImpl, error) {
@@ -142,7 +143,7 @@ func (c *CourseRepository) PreloadFindAllAndOrder(size int, page int, sort strin
       Find(&data).
       Error; err != nil {
 
-      return data, errors.New(fmt.Sprintf("unable to catch courses"))
+      return data, errors.New("unable to catch courses")
     }
   }
 
@@ -163,6 +164,35 @@ func (c *CourseRepository) PreloadFind(query any, args ...any) (*models.Courses,
     //Joins("INNER JOIN checkout ON courses.id = checkout.course_id").
     //Joins("INNER JOIN modules ON courses.id = modules.course_id").
     Where(query, args...).
+    Find(&data).
+    Error; err != nil {
+
+    return nil, errors.New(fmt.Sprintf("unable to catch courses"))
+  }
+
+  if len(data) > 0 {
+
+    return &data[0], nil
+  }
+
+  return nil, errors.New("course is empty")
+}
+
+func (c *CourseRepository) PreloadFindByCheckUserAndCourseId(userId string, courseId string) (*models.Courses, error) {
+
+  c.SessionNew()
+
+  var err error
+
+  data := make([]models.Courses, 0)
+
+  if err = c.GORM().
+    Preload("Checkout", "id IN (?)", c.GORM().
+      Table("checkout").
+      Select("id").
+      Where("verify = true AND user_id = ?", userId)).
+    Preload("Modules").
+    Where("id = ?", courseId).
     Find(&data).
     Error; err != nil {
 

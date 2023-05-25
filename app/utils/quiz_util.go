@@ -2,7 +2,9 @@ package util
 
 import (
   "encoding/json"
+  "math/rand"
   "strings"
+  "time"
 )
 
 type Choice struct {
@@ -56,11 +58,14 @@ func Valid(source Choices, target Choices) bool {
     found = false
     for _, choice := range data {
 
-      // check available answer in data source
-      if attempt.Text == choice.Text {
+      if attempt.Valid {
 
-        found = true
-        break
+        // check available answer in data source
+        if attempt.Text == choice.Text {
+
+          found = true
+          break
+        }
       }
     }
 
@@ -95,4 +100,31 @@ func QuizScore(source Quizzes, target Quizzes) int {
   }
 
   return int(float64(score/n) * 100)
+}
+
+func QuizRandHideValid(source Quizzes) Quizzes {
+
+  quizzes := make(Quizzes, 0)
+  rnd := rand.New(rand.NewSource(time.Now().UTC().UnixNano()))
+
+  for _, quiz := range source {
+
+    n := len(quiz.Choices)
+    temp := make(Choices, 0)
+
+    for _, choice := range quiz.Choices {
+
+      choice.Valid = false
+      temp = append(temp, choice)
+    }
+
+    rnd.Shuffle(n, func(i, j int) {
+      temp[i], temp[j] = temp[j], temp[i]
+    })
+
+    quiz.Choices = temp
+    quizzes = append(quizzes, quiz)
+  }
+
+  return quizzes
 }
