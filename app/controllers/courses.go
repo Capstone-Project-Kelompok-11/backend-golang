@@ -237,6 +237,34 @@ func CourseController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
 
               if minScoreRequired <= score {
 
+                // TODO
+                // check all modules in data course
+                // insert into completion_courses
+                // make event notify to admin
+
+                once := false
+
+                pp.Void(&once)
+
+                var completionModule *models.CompletionModules
+
+                if completionModule, err = completionModuleRepo.Find("user_id = ? AND module_id = ?", userModel.ID, module.ID); completionModule != nil {
+
+                  if !once {
+
+                    completionModule.Score = score
+
+                    if err = completionModuleRepo.Update(completionModule, "id = ?", completionModule.ID); err != nil {
+
+                      return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+                    }
+
+                    return ctx.OK(kornet.Msg(fmt.Sprintf("your score is %d passed", score), false))
+                  }
+
+                  return ctx.BadRequest(kornet.Msg("take quiz only once", true))
+                }
+
                 if _, err = completionModuleRepo.Create(&models.CompletionModules{
                   Model:    &easy.Model{},
                   UserID:   userModel.ID,
@@ -254,7 +282,7 @@ func CourseController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
               }
 
               // not passed
-              return ctx.OK(kornet.ResultNew(kornet.MessageNew(fmt.Sprintf("your score is %d not enough to passed", score), false), dataQuizzes))
+              return ctx.OK(kornet.Msg(fmt.Sprintf("your score is %d not enough to passed", score), false))
             }
 
             return ctx.BadRequest(kornet.Msg("quizzes not found", true))
