@@ -6,9 +6,10 @@ update:
 
 build: update
 	mkdir -p build/bin
-	env CGO_ENABLED=0 go build -o build/bin/app main.go
+	env go build -o build/bin/app main.go
 
 release: build
+	rm bin/start
 	cp build/bin/app bin/start
 	chmod a+x bin/start
 
