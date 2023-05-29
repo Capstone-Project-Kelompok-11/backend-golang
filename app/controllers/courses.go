@@ -73,7 +73,7 @@ func CourseController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
 
         courseId := m.KValueToString(kReq.Query.Get("id"))
 
-        if data, err = courseRepo.PreloadFindByCheckUserAndCourseId(userModel.ID, courseId); data != nil {
+        if data, err = courseRepo.PreFindByCheckUserAndCourseId(userModel.ID, courseId); data != nil {
 
           collective := util.CourseDataCollective([]models.Courses{*data})
 

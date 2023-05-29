@@ -68,6 +68,7 @@ func App(pn papaya.NetImpl) error {
     &models.CompletionCourses{},
     &models.CompletionModules{},
     &models.Checkout{},
+    &models.Banners{},
   )
 
   factory.AdminFactory(pn) // set admin factory

@@ -9,6 +9,7 @@ import (
   "skfw/papaya/koala/kio"
   "skfw/papaya/koala/kornet"
   m "skfw/papaya/koala/mapping"
+  "skfw/papaya/koala/pp"
   "skfw/papaya/koala/tools/posix"
 )
 
@@ -18,6 +19,8 @@ func AnonymController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
   DB := conn.GORM()
 
   courseRepo, _ := repository.CourseRepositoryNew(DB)
+  categoryRepo, _ := repository.CategoryRepositoryNew(DB)
+  bannerRepo, _ := repository.BannerRepositoryNew(DB)
 
   router.Get("/ping", &m.KMap{
     "description": "Testing Response",
@@ -183,13 +186,34 @@ func AnonymController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
 
     } else {
 
-      if data, err = courseRepo.CatchAll(size, page); err != nil {
+      if data, err = courseRepo.PreCatchAll(size, page); err != nil {
 
         return ctx.InternalServerError(kornet.Msg(err.Error(), true))
       }
     }
 
-    return ctx.OK(kornet.ResultNew(kornet.MessageNew("catch all courses", false), util.CourseDataCollective(data)))
+    exposed := util.CourseDataCollective(data)
+
+    for _, course := range exposed {
+
+      categories := make([]string, 0)
+
+      if categoryModels, ok := course.Get("category_courses").([]models.CategoryCourses); ok {
+
+        for _, categoryModel := range categoryModels {
+
+          if category, _ := categoryRepo.Find("id", categoryModel.CategoryID); category != nil {
+
+            categories = append(categories, category.Name)
+          }
+        }
+      }
+
+      course.Put("categories", categories)
+      course.Del("category_courses")
+    }
+
+    return ctx.OK(kornet.ResultNew(kornet.MessageNew("catch all courses", false), exposed))
   })
 
   router.Get("/cert/:src", &m.KMap{
@@ -225,4 +249,37 @@ func AnonymController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
 
     return ctx.BadRequest(kornet.Msg("invalid path", true))
   })
+
+  router.Get("/banners", &m.KMap{
+    "description": "Get Public Banners",
+    "request": &m.KMap{
+      "params": &m.KMap{
+        "page": "number",
+        "size": "number",
+      },
+    },
+    "responses": swag.OkJSON(&kornet.Result{
+      Data: []models.Banners{},
+    }),
+  },
+    func(ctx *swag.SwagContext) error {
+
+      var err error
+
+      pp.Void(err)
+
+      kReq, _ := ctx.Kornet()
+
+      size := util.ValueToInt(kReq.Query.Get("size"))
+      page := util.ValueToInt(kReq.Query.Get("page"))
+
+      var banners []models.Banners
+
+      if banners, err = bannerRepo.CatchAll(size, page); err != nil {
+
+        return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+      }
+
+      return ctx.OK(kornet.ResultNew(kornet.MessageNew("catch all banners", false), banners))
+    })
 }

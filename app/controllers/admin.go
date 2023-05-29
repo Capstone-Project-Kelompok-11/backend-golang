@@ -22,11 +22,14 @@ func AdminController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
 
   userRepo, _ := repository.UserRepositoryNew(DB)
   courseRepo, _ := repository.CourseRepositoryNew(DB)
+  categoryRepo, _ := repository.CategoryRepositoryNew(DB)
+  categoryCourseRepo, _ := repository.CategoryCourseRepositoryNew(DB)
   checkoutRepo, _ := repository.CheckoutRepositoryNew(DB)
   moduleRepo, _ := repository.ModuleRepositoryNew(DB)
   quizRepo, _ := repository.QuizzesRepositoryNew(DB)
+  bannerRepo, _ := repository.BannerRepositoryNew(DB)
 
-  pp.Void(userRepo)
+  pp.Void(bannerRepo)
 
   router.Post("/course/thumbnail/upload", &m.KMap{
     "AuthToken":   true,
@@ -1065,7 +1068,7 @@ func AdminController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
           return ctx.InternalServerError(kornet.Msg(err.Error(), true))
         }
 
-        if data, err = courseRepo.PreloadFindAllAndOrder(size, page, "name "+sort, "name LIKE ?", search); err != nil {
+        if data, err = courseRepo.PreFindAllAndOrder(size, page, "name "+sort, "name LIKE ?", search); err != nil {
 
           return ctx.InternalServerError(kornet.Msg(err.Error(), true))
         }
@@ -1141,4 +1144,476 @@ func AdminController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
 
     return ctx.OK(kornet.ResultNew(kornet.MessageNew("checkout history", false), exposed))
   })
+
+  router.Post("/category", &m.KMap{
+    "AuthToken":   true,
+    "Admin":       true,
+    "description": "Create Category",
+    "request": &m.KMap{
+      "headers": &m.KMap{
+        "Authorization": "string",
+      },
+      "body": swag.JSON(&m.KMap{
+        "name":        "string",
+        "description": "string",
+      }),
+    },
+    "responses": swag.CreatedJSON(&kornet.Result{}),
+  }, func(ctx *swag.SwagContext) error {
+
+    var err error
+
+    pp.Void(err)
+
+    if ctx.Event() {
+
+      if userModel, ok := ctx.Target().(*mo.UserModel); ok {
+
+        pp.Void(userModel)
+
+        kReq, _ := ctx.Kornet()
+
+        body := &m.KMap{}
+
+        if err = json.Unmarshal(kReq.Body.ReadAll(), body); err != nil {
+
+          return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+        }
+
+        name := m.KValueToString(body.Get("name"))
+        description := m.KValueToString(body.Get("description"))
+
+        if _, err = categoryRepo.Create(&models.Categories{
+          Model:       &easy.Model{}, // not easy anymore ...
+          Name:        name,
+          Description: description,
+        }); err != nil {
+
+          return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+        }
+
+        return ctx.OK(kornet.Msg("successful create category", false))
+      }
+    }
+
+    return ctx.InternalServerError(kornet.Msg("unable to get user information", true))
+
+  })
+
+  router.Post("/course/category", &m.KMap{
+    "AuthToken":   true,
+    "Admin":       true,
+    "description": "Create Course Category",
+    "request": &m.KMap{
+      "params": &m.KMap{
+        "id": "string", // course id
+      },
+      "headers": &m.KMap{
+        "Authorization": "string",
+      },
+      "body": swag.JSON(&m.KMap{
+        "category_id": "string",
+      }),
+    },
+    "responses": swag.CreatedJSON(&kornet.Result{}),
+  }, func(ctx *swag.SwagContext) error {
+
+    var err error
+
+    pp.Void(err)
+
+    if ctx.Event() {
+
+      if userModel, ok := ctx.Target().(*mo.UserModel); ok {
+
+        pp.Void(userModel)
+
+        kReq, _ := ctx.Kornet()
+        courseId := m.KValueToString(kReq.Query.Get("id"))
+
+        body := &m.KMap{}
+
+        if err = json.Unmarshal(kReq.Body.ReadAll(), body); err != nil {
+
+          return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+        }
+
+        categoryId := m.KValueToString(body.Get("category_id"))
+
+        if _, err = categoryCourseRepo.Create(&models.CategoryCourses{
+          Model:      &easy.Model{},
+          CourseID:   courseId,
+          CategoryID: categoryId,
+        }); err != nil {
+
+          return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+        }
+
+        return ctx.OK(kornet.Msg("successful link course category", false))
+
+      }
+    }
+
+    return ctx.InternalServerError(kornet.Msg("unable to get user information", true))
+  })
+
+  router.Put("/category", &m.KMap{
+    "AuthToken":   true,
+    "Admin":       true,
+    "description": "Update Category",
+    "request": &m.KMap{
+      "params": &m.KMap{
+        "id": "string", // category id
+      },
+      "headers": &m.KMap{
+        "Authorization": "string",
+      },
+      "body": swag.JSON(&m.KMap{
+        "name":        "string",
+        "description": "string",
+      }),
+    },
+    "responses": swag.CreatedJSON(&kornet.Result{}),
+  }, func(ctx *swag.SwagContext) error {
+
+    var err error
+
+    pp.Void(err)
+
+    if ctx.Event() {
+
+      if userModel, ok := ctx.Target().(*mo.UserModel); ok {
+
+        pp.Void(userModel)
+
+        kReq, _ := ctx.Kornet()
+
+        body := &m.KMap{}
+
+        if err = json.Unmarshal(kReq.Body.ReadAll(), body); err != nil {
+
+          return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+        }
+
+        categoryId := m.KValueToString(kReq.Query.Get("id"))
+        name := m.KValueToString(body.Get("name"))
+        description := m.KValueToString(body.Get("description"))
+
+        var check *models.Categories
+
+        if check, err = categoryRepo.Find("id = ?", categoryId); check != nil {
+
+          check.Name = name
+          check.Description = description
+
+          if err = categoryRepo.Update(check, "id = ?", check.ID); err != nil {
+
+            return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+          }
+
+          return ctx.OK(kornet.Msg("successful update category", false))
+        }
+
+        return ctx.BadRequest(kornet.Msg("category not found", true))
+
+      }
+    }
+
+    return ctx.InternalServerError(kornet.Msg("unable to get user information", true))
+  })
+
+  router.Delete("/category", &m.KMap{
+    "AuthToken":   true,
+    "Admin":       true,
+    "description": "Delete Category",
+    "request": &m.KMap{
+      "params": &m.KMap{
+        "id": "string", // category id
+      },
+    },
+    "responses": swag.CreatedJSON(&kornet.Result{}),
+  }, func(ctx *swag.SwagContext) error {
+
+    var err error
+
+    pp.Void(err)
+
+    if ctx.Event() {
+
+      if userModel, ok := ctx.Target().(*mo.UserModel); ok {
+
+        pp.Void(userModel)
+
+        kReq, _ := ctx.Kornet()
+
+        categoryId := m.KValueToString(kReq.Query.Get("id"))
+
+        var check *models.Categories
+
+        if check, err = categoryRepo.Find("id = ?", categoryId); check != nil {
+
+          if err = categoryRepo.Delete(check); err != nil { // hard delete
+
+            return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+          }
+
+          return ctx.OK(kornet.Msg("successful delete category", false))
+        }
+      }
+    }
+
+    return ctx.InternalServerError(kornet.Msg("unable to get user information", true))
+  })
+
+  router.Get("/categories", &m.KMap{
+    "AuthToken":   true,
+    "Admin":       true,
+    "description": "Get Categories",
+    "request": &m.KMap{
+      "params": &m.KMap{
+        "size": "number",
+        "page": "number",
+      },
+      "headers": &m.KMap{
+        "Authorization": "string",
+      },
+    },
+    "responses": swag.CreatedJSON(&kornet.Result{}),
+  }, func(ctx *swag.SwagContext) error {
+
+    var err error
+
+    pp.Void(err)
+
+    if ctx.Event() {
+
+      if userModel, ok := ctx.Target().(*mo.UserModel); ok {
+
+        pp.Void(userModel)
+
+        kReq, _ := ctx.Kornet()
+
+        size := util.ValueToInt(kReq.Query.Get("size"))
+        page := util.ValueToInt(kReq.Query.Get("page"))
+
+        var categories []models.Categories
+
+        if categories, err = categoryRepo.CatchAll(size, page); err != nil {
+
+          return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+        }
+
+        return ctx.OK(kornet.ResultNew(kornet.MessageNew("successful get categories", false), categories))
+
+      }
+    }
+
+    return ctx.InternalServerError(kornet.Msg("unable to get user information", true))
+  })
+
+  router.Post("/banner", &m.KMap{
+    "AuthToken":   true,
+    "Admin":       true,
+    "description": "Create Banner",
+    "request": &m.KMap{
+      "headers": &m.KMap{
+        "Authorization": "string",
+      },
+      "body": swag.JSON(&m.KMap{
+        "alt": "string",
+      }),
+    },
+    "responses": swag.CreatedJSON(&kornet.Result{}),
+  },
+    func(ctx *swag.SwagContext) error {
+
+      var err error
+
+      pp.Void(err)
+
+      if ctx.Event() {
+
+        if userModel, ok := ctx.Target().(*mo.UserModel); ok {
+
+          pp.Void(userModel)
+
+          kReq, _ := ctx.Kornet()
+
+          body := &m.KMap{}
+
+          if err = json.Unmarshal(kReq.Body.ReadAll(), body); err != nil {
+
+            return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+          }
+
+          alt := m.KValueToString(body.Get("alt"))
+
+          if check, _ := bannerRepo.Create(&models.Banners{
+            Model: &easy.Model{},
+            Alt:   alt,
+          }); check != nil {
+
+            if check.Src == "" {
+
+              check.Src, _ = util.GenUniqFileNameOutput("assets/public/images", "banner.png")
+
+              if err = bannerRepo.Update(check, "id = ?", check.ID); err != nil {
+
+                return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+              }
+            }
+
+            return util.SwagSaveImage(ctx, check.Src, func(filename string) error {
+
+              check.Src = filename
+
+              return bannerRepo.Update(check, "id = ?", check.ID)
+            })
+          }
+
+          return ctx.InternalServerError(kornet.Msg("unable to create new banner", true))
+        }
+      }
+
+      return ctx.InternalServerError(kornet.Msg("unable to get user information", true))
+    })
+
+  router.Put("/banner", &m.KMap{
+    "AuthToken":   true,
+    "Admin":       true,
+    "description": "Update Banner",
+    "request": &m.KMap{
+      "params": &m.KMap{
+        "id": "string",
+      },
+      "headers": &m.KMap{
+        "Authorization": "string",
+      },
+      "body": swag.JSON(&m.KMap{
+        "alt": "string",
+      }),
+    },
+    "responses": swag.OkJSON(&kornet.Result{}),
+  },
+    func(ctx *swag.SwagContext) error {
+
+      var err error
+
+      pp.Void(err)
+
+      if ctx.Event() {
+
+        if userModel, ok := ctx.Target().(*mo.UserModel); ok {
+
+          pp.Void(userModel)
+
+          kReq, _ := ctx.Kornet()
+
+          body := &m.KMap{}
+
+          if err = json.Unmarshal(kReq.Body.ReadAll(), body); err != nil {
+
+            return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+          }
+
+          bannerId := m.KValueToString(kReq.Query.Get("id"))
+          alt := m.KValueToString(body.Get("alt"))
+
+          if check, _ := bannerRepo.Find("id = ?", bannerId); check != nil {
+
+            if check.Src != "" {
+
+              if err = util.SwagRemoveImage(ctx, check.Src); err != nil {
+
+                return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+              }
+
+              check.Src = "" // make empty string
+            }
+
+            if check.Src == "" {
+
+              check.Src, _ = util.GenUniqFileNameOutput("assets/public/images", "banner.png")
+
+              if err = bannerRepo.Update(check, "id = ?", check.ID); err != nil {
+
+                return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+              }
+            }
+
+            if err = util.SwagSaveImage(ctx, check.Src, func(filename string) error {
+
+              check.Alt = alt
+              check.Src = filename
+
+              return bannerRepo.Update(check, "id = ?", check.ID)
+            }); err != nil {
+
+              return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+            }
+
+            return ctx.OK(kornet.Msg("successful update banner", false))
+          }
+
+          return ctx.InternalServerError(kornet.Msg("unable to create new banner", true))
+        }
+      }
+
+      return ctx.InternalServerError(kornet.Msg("unable to get user information", true))
+    })
+
+  router.Delete("/banner", &m.KMap{
+    "AuthToken":   true,
+    "Admin":       true,
+    "description": "Update Banner",
+    "request": &m.KMap{
+      "params": &m.KMap{
+        "id": "string",
+      },
+      "headers": &m.KMap{
+        "Authorization": "string",
+      },
+    },
+    "responses": swag.OkJSON(&kornet.Result{}),
+  },
+    func(ctx *swag.SwagContext) error {
+
+      var err error
+
+      pp.Void(err)
+
+      if ctx.Event() {
+
+        if userModel, ok := ctx.Target().(*mo.UserModel); ok {
+
+          pp.Void(userModel)
+
+          kReq, _ := ctx.Kornet()
+
+          bannerId := m.KValueToString(kReq.Query.Get("id"))
+
+          if check, _ := bannerRepo.Find("id = ?", bannerId); check != nil {
+
+            if check.Src != "" {
+
+              if err = util.SwagRemoveImage(ctx, check.Src); err != nil {
+
+                return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+              }
+            }
+
+            if err = bannerRepo.Delete(check); err != nil {
+
+              return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+            }
+
+            return ctx.OK(kornet.ResultNew(kornet.MessageNew("successful delete banner", false), nil))
+          }
+
+          return ctx.InternalServerError(kornet.Msg("unable to create new banner", true))
+        }
+      }
+
+      return ctx.InternalServerError(kornet.Msg("unable to get user information", true))
+    })
 }

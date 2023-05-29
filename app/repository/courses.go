@@ -15,10 +15,11 @@ type CourseRepository struct {
 type CourseRepositoryImpl interface {
   easy.RepositoryImpl[models.Courses]
   FindAllAndOrder(size int, page int, sort string, query any, args ...any) ([]models.Courses, error)
-  PreloadFindAllAndOrder(size int, page int, sort string, query any, args ...any) ([]models.Courses, error)
-  PreloadFind(query any, args ...any) (*models.Courses, error)
+  PreFindAllAndOrder(size int, page int, sort string, query any, args ...any) ([]models.Courses, error)
+  PreFind(query any, args ...any) (*models.Courses, error)
   UpdateMemberCountByUserId(id string) error
-  PreloadFindByCheckUserAndCourseId(userId string, courseId string) (*models.Courses, error)
+  PreFindByCheckUserAndCourseId(userId string, courseId string) (*models.Courses, error)
+  PreCatchAll(size int, page int) ([]models.Courses, error)
 }
 
 func CourseRepositoryNew(DB *gorm.DB) (CourseRepositoryImpl, error) {
@@ -90,6 +91,33 @@ func (c *CourseRepository) GORM() *gorm.DB {
   return c.Repository.GORM()
 }
 
+func (c *CourseRepository) PreCatchAll(size int, page int) ([]models.Courses, error) {
+
+  c.SessionNew()
+
+  var err error
+
+  data := make([]models.Courses, 0)
+
+  if page > 0 {
+
+    offset := size * (page - 1)
+    limit := size
+
+    if err = c.GORM().
+      Preload("CategoryCourses").
+      Offset(offset).
+      Limit(limit).
+      Find(&data).
+      Error; err != nil {
+
+      return data, errors.New(fmt.Sprintf("unable to catch courses"))
+    }
+  }
+
+  return data, nil
+}
+
 func (c *CourseRepository) FindAllAndOrder(size int, page int, sort string, query any, args ...any) ([]models.Courses, error) {
 
   c.SessionNew()
@@ -104,6 +132,7 @@ func (c *CourseRepository) FindAllAndOrder(size int, page int, sort string, quer
     limit := size
 
     if err = c.GORM().
+      Preload("CategoryCourses").
       Where(query, args...).
       Order(sort).
       Offset(offset).
@@ -118,7 +147,7 @@ func (c *CourseRepository) FindAllAndOrder(size int, page int, sort string, quer
   return data, nil
 }
 
-func (c *CourseRepository) PreloadFindAllAndOrder(size int, page int, sort string, query any, args ...any) ([]models.Courses, error) {
+func (c *CourseRepository) PreFindAllAndOrder(size int, page int, sort string, query any, args ...any) ([]models.Courses, error) {
 
   c.SessionNew()
 
@@ -150,7 +179,7 @@ func (c *CourseRepository) PreloadFindAllAndOrder(size int, page int, sort strin
   return data, nil
 }
 
-func (c *CourseRepository) PreloadFind(query any, args ...any) (*models.Courses, error) {
+func (c *CourseRepository) PreFind(query any, args ...any) (*models.Courses, error) {
 
   c.SessionNew()
 
@@ -178,7 +207,7 @@ func (c *CourseRepository) PreloadFind(query any, args ...any) (*models.Courses,
   return nil, errors.New("course is empty")
 }
 
-func (c *CourseRepository) PreloadFindByCheckUserAndCourseId(userId string, courseId string) (*models.Courses, error) {
+func (c *CourseRepository) PreFindByCheckUserAndCourseId(userId string, courseId string) (*models.Courses, error) {
 
   c.SessionNew()
 
