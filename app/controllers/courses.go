@@ -1,300 +1,321 @@
 package controllers
 
 import (
-  "encoding/json"
-  "fmt"
-  "lms/app/models"
-  "lms/app/repository"
-  util "lms/app/utils"
-  "skfw/papaya"
-  "skfw/papaya/bunny/swag"
-  "skfw/papaya/koala/kornet"
-  m "skfw/papaya/koala/mapping"
-  "skfw/papaya/koala/pp"
-  "skfw/papaya/pigeon/easy"
-  mo "skfw/papaya/pigeon/templates/basicAuth/models"
+	"encoding/json"
+	"fmt"
+	"lms/app/models"
+	"lms/app/repository"
+	util "lms/app/utils"
+	"skfw/papaya"
+	"skfw/papaya/bunny/swag"
+	"skfw/papaya/koala/kornet"
+	m "skfw/papaya/koala/mapping"
+	"skfw/papaya/koala/pp"
+	"skfw/papaya/pigeon/easy"
+	mo "skfw/papaya/pigeon/templates/basicAuth/models"
 )
 
 var minScoreRequired = 60
 
 func CourseController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
 
-  conn := pn.Connection()
-  DB := conn.GORM()
-
-  checkoutRepo, _ := repository.CheckoutRepositoryNew(DB)
-  courseRepo, _ := repository.CourseRepositoryNew(DB)
-  moduleRepo, _ := repository.ModuleRepositoryNew(DB)
-  quizRepo, _ := repository.QuizzesRepositoryNew(DB)
-
-  completionModuleRepo, _ := repository.CompletionModuleRepositoryNew(DB)
-
-  pp.Void(courseRepo)
-
-  router.Get("/course", &m.KMap{
-    "AuthToken":   true,
-    "description": "Catch All Course",
-    "request": m.KMap{
-      "params": &m.KMap{
-        "id": "string", // course id
-      },
-      "headers": &m.KMap{
-        "Authorization": "string",
-      },
-    },
-    "responses": swag.OkJSON(&m.KMap{
-      "id":          "string",
-      "name":        "string",
-      "description": "string",
-      "thumbnail":   "string",
-      "video":       "string",
-      "document":    "string",
-      "price":       "number",
-      "level":       "string",
-      "rating":      "number",
-      "finished":    "number",
-      "members":     "number",
-      "modules":     []models.Modules{},
-    }),
-  }, func(ctx *swag.SwagContext) error {
+	conn := pn.Connection()
+	DB := conn.GORM()
 
-    var err error
-    var userModel *mo.UserModel
-    var data *models.Courses
-    var ok bool
+	checkoutRepo, _ := repository.CheckoutRepositoryNew(DB)
+	courseRepo, _ := repository.CourseRepositoryNew(DB)
+	moduleRepo, _ := repository.ModuleRepositoryNew(DB)
+	quizRepo, _ := repository.QuizzesRepositoryNew(DB)
+
+	completionModuleRepo, _ := repository.CompletionModuleRepositoryNew(DB)
+
+	pp.Void(courseRepo)
+
+	router.Get("/course", &m.KMap{
+		"AuthToken":   true,
+		"description": "Catch All Course",
+		"request": m.KMap{
+			"params": &m.KMap{
+				"id": "string", // course id
+			},
+			"headers": &m.KMap{
+				"Authorization": "string",
+			},
+		},
+		"responses": swag.OkJSON(&m.KMap{
+			"id":          "string",
+			"name":        "string",
+			"description": "string",
+			"thumbnail":   "string",
+			"video":       "string",
+			"document":    "string",
+			"price":       "number",
+			"level":       "string",
+			"rating":      "number",
+			"finished":    "number",
+			"members":     "number",
+			"modules":     []models.Modules{},
+		}),
+	}, func(ctx *swag.SwagContext) error {
 
-    pp.Void(err)
+		var err error
+		var userModel *mo.UserModel
+		var data *models.Courses
+		var ok bool
 
-    if ctx.Event() {
+		pp.Void(err)
 
-      if userModel, ok = ctx.Target().(*mo.UserModel); ok {
-
-        kReq, _ := ctx.Kornet()
-
-        courseId := m.KValueToString(kReq.Query.Get("id"))
-
-        if data, err = courseRepo.PreloadFindByCheckUserAndCourseId(userModel.ID, courseId); data != nil {
-
-          collective := util.CourseDataCollective([]models.Courses{*data})
-
-          if len(collective) > 0 {
-
-            return ctx.OK(kornet.ResultNew(kornet.MessageNew("catch full course", false), collective[0]))
-          }
-
-          return ctx.InternalServerError(kornet.Msg("something went wrong", true))
-        }
-
-        return ctx.BadRequest(kornet.Msg("user not enrolled course", true))
-      }
-    }
-
-    return ctx.InternalServerError(kornet.Msg("unable to get user information", true))
-  })
-
-  router.Get("/quiz", &m.KMap{
-    "AuthToken":   true,
-    "description": "Catch All Course",
-    "request": m.KMap{
-      "params": &m.KMap{
-        "id": "string", // module id
-      },
-      "headers": &m.KMap{
-        "Authorization": "string",
-      },
-    },
-    "responses": swag.OkJSON(kornet.Result{
-      Data: util.Quizzes{
-        util.Quiz{
-          Choices: util.Choices{
-            util.Choice{},
-          },
-        },
-      },
-    }),
-  }, func(ctx *swag.SwagContext) error {
+		if ctx.Event() {
 
-    var err error
-    var checkout *models.Checkout
-    var module *models.Modules
-    var quizzes *models.Quizzes
+			if userModel, ok = ctx.Target().(*mo.UserModel); ok {
 
-    pp.Void(err)
+				kReq, _ := ctx.Kornet()
 
-    if ctx.Event() {
+				courseId := m.KValueToString(kReq.Query.Get("id"))
 
-      if userModel, ok := ctx.Target().(*mo.UserModel); ok {
+				if data, err = courseRepo.PreloadFindByCheckUserAndCourseId(userModel.ID, courseId); data != nil {
 
-        pp.Void(userModel)
+					collective := util.CourseDataCollective([]models.Courses{*data})
 
-        kReq, _ := ctx.Kornet()
+					if len(collective) > 0 {
 
-        moduleId := m.KValueToString(kReq.Query.Get("id"))
+						exposed := collective[0]
 
-        // get course id from module id
-        if module, err = moduleRepo.Find("id = ?", moduleId); module != nil {
+						moduleExposed := make([]m.KMapImpl, len(data.Modules))
 
-          if checkout, err = checkoutRepo.Find("course_id = ? AND user_id = ?", module.CourseID, userModel.ID); checkout != nil {
+						for i, module := range data.Modules {
 
-            if quizzes, err = quizRepo.Find("module_id = ?", moduleId); quizzes != nil {
+							completion := true
 
-              var dataQuizzes util.Quizzes
-              if dataQuizzes, err = util.ParseQuizzes([]byte(quizzes.Data)); err != nil {
+							if _, err = completionModuleRepo.Find("user_id = ? AND module_id = ?", userModel.ID, module.ID); err != nil {
 
-                return ctx.InternalServerError(kornet.Msg(err.Error(), true))
-              }
+								completion = false
+							}
 
-              // randomize quizzes without showing valid answer
-              dataQuizzes = util.QuizRandHideValid(dataQuizzes)
+							moduleExposed[i] = &m.KMap{
+								"data":       module,
+								"completion": completion,
+							}
+						}
 
-              return ctx.OK(kornet.ResultNew(kornet.MessageNew("catch full quizzes", false), dataQuizzes))
-            }
+						exposed.Set("modules", moduleExposed)
 
-            return ctx.BadRequest(kornet.Msg("quizzes not found", true))
-          }
+						return ctx.OK(kornet.ResultNew(kornet.MessageNew("catch full course", false), exposed))
+					}
+
+					return ctx.InternalServerError(kornet.Msg("something went wrong", true))
+				}
+
+				return ctx.BadRequest(kornet.Msg("user not enrolled course", true))
+			}
+		}
+
+		return ctx.InternalServerError(kornet.Msg("unable to get user information", true))
+	})
+
+	router.Get("/quiz", &m.KMap{
+		"AuthToken":   true,
+		"description": "Catch All Course",
+		"request": m.KMap{
+			"params": &m.KMap{
+				"id": "string", // module id
+			},
+			"headers": &m.KMap{
+				"Authorization": "string",
+			},
+		},
+		"responses": swag.OkJSON(kornet.Result{
+			Data: util.Quizzes{
+				util.Quiz{
+					Choices: util.Choices{
+						util.Choice{},
+					},
+				},
+			},
+		}),
+	}, func(ctx *swag.SwagContext) error {
 
-          return ctx.BadRequest(kornet.Msg("user not enrolled course", true))
-        }
+		var err error
+		var checkout *models.Checkout
+		var module *models.Modules
+		var quizzes *models.Quizzes
 
-        return ctx.BadRequest(kornet.Msg("module not found", true))
-      }
-    }
+		pp.Void(err)
 
-    return ctx.InternalServerError(kornet.Msg("unable to get user information", true))
-  })
+		if ctx.Event() {
 
-  router.Post("/quiz", &m.KMap{
-    "AuthToken":   true,
-    "description": "Catch All Course",
-    "request": m.KMap{
-      "params": &m.KMap{
-        "id": "string", // module id
-      },
-      "headers": &m.KMap{
-        "Authorization": "string",
-      },
-      "body": swag.JSON(&m.KMap{
-        "quizzes": util.Quizzes{
-          util.Quiz{
-            Choices: util.Choices{
-              util.Choice{},
-            },
-          },
-        },
-      }),
-    },
-    "responses": swag.OkJSON(kornet.Result{}),
-  }, func(ctx *swag.SwagContext) error {
+			if userModel, ok := ctx.Target().(*mo.UserModel); ok {
 
-    var err error
-    var checkout *models.Checkout
-    var module *models.Modules
-    var quizzes *models.Quizzes
+				pp.Void(userModel)
 
-    pp.Void(err)
+				kReq, _ := ctx.Kornet()
 
-    if ctx.Event() {
+				moduleId := m.KValueToString(kReq.Query.Get("id"))
 
-      if userModel, ok := ctx.Target().(*mo.UserModel); ok {
+				// get course id from module id
+				if module, err = moduleRepo.Find("id = ?", moduleId); module != nil {
 
-        pp.Void(userModel)
+					if checkout, err = checkoutRepo.Find("course_id = ? AND user_id = ?", module.CourseID, userModel.ID); checkout != nil {
 
-        kReq, _ := ctx.Kornet()
+						if quizzes, err = quizRepo.Find("module_id = ?", moduleId); quizzes != nil {
 
-        moduleId := m.KValueToString(kReq.Query.Get("id"))
+							var dataQuizzes util.Quizzes
+							if dataQuizzes, err = util.ParseQuizzes([]byte(quizzes.Data)); err != nil {
 
-        body := &m.KMap{}
+								return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+							}
 
-        if err = json.Unmarshal(kReq.Body.ReadAll(), body); err != nil {
+							// randomize quizzes without showing valid answer
+							dataQuizzes = util.QuizRandHideValid(dataQuizzes)
 
-          return ctx.InternalServerError(kornet.Msg("unable to parse request body", true))
-        }
+							return ctx.OK(kornet.ResultNew(kornet.MessageNew("catch full quizzes", false), dataQuizzes))
+						}
 
-        dataQuizzesJSON := m.KMapEncodeJSON(body.Get("quizzes"))
+						return ctx.BadRequest(kornet.Msg("quizzes not found", true))
+					}
 
-        var dataQuizzes util.Quizzes
-        var attemptQuizzes util.Quizzes
+					return ctx.BadRequest(kornet.Msg("user not enrolled course", true))
+				}
 
-        if attemptQuizzes, err = util.ParseQuizzes([]byte(dataQuizzesJSON)); err != nil {
+				return ctx.BadRequest(kornet.Msg("module not found", true))
+			}
+		}
 
-          return ctx.InternalServerError(kornet.Msg(err.Error(), true))
-        }
+		return ctx.InternalServerError(kornet.Msg("unable to get user information", true))
+	})
 
-        // get course id from module id
-        if module, err = moduleRepo.Find("id = ?", moduleId); module != nil {
+	router.Post("/quiz", &m.KMap{
+		"AuthToken":   true,
+		"description": "Catch All Course",
+		"request": m.KMap{
+			"params": &m.KMap{
+				"id": "string", // module id
+			},
+			"headers": &m.KMap{
+				"Authorization": "string",
+			},
+			"body": swag.JSON(&m.KMap{
+				"quizzes": util.Quizzes{
+					util.Quiz{
+						Choices: util.Choices{
+							util.Choice{},
+						},
+					},
+				},
+			}),
+		},
+		"responses": swag.OkJSON(kornet.Result{}),
+	}, func(ctx *swag.SwagContext) error {
 
-          if checkout, err = checkoutRepo.Find("course_id = ? AND user_id = ?", module.CourseID, userModel.ID); checkout != nil {
+		var err error
+		var checkout *models.Checkout
+		var module *models.Modules
+		var quizzes *models.Quizzes
 
-            if quizzes, err = quizRepo.Find("module_id = ?", moduleId); quizzes != nil {
+		pp.Void(err)
 
-              if dataQuizzes, err = util.ParseQuizzes([]byte(quizzes.Data)); err != nil {
+		if ctx.Event() {
 
-                return ctx.InternalServerError(kornet.Msg(err.Error(), true))
-              }
+			if userModel, ok := ctx.Target().(*mo.UserModel); ok {
 
-              // get quizzes score
-              score := util.QuizScore(dataQuizzes, attemptQuizzes)
+				pp.Void(userModel)
 
-              if minScoreRequired <= score {
+				kReq, _ := ctx.Kornet()
 
-                // TODO
-                // check all modules in data course
-                // insert into completion_courses
-                // make event notify to admin
+				moduleId := m.KValueToString(kReq.Query.Get("id"))
 
-                once := false
+				body := &m.KMap{}
 
-                pp.Void(&once)
+				if err = json.Unmarshal(kReq.Body.ReadAll(), body); err != nil {
 
-                var completionModule *models.CompletionModules
+					return ctx.InternalServerError(kornet.Msg("unable to parse request body", true))
+				}
 
-                if completionModule, err = completionModuleRepo.Find("user_id = ? AND module_id = ?", userModel.ID, module.ID); completionModule != nil {
+				dataQuizzesJSON := m.KMapEncodeJSON(body.Get("quizzes"))
 
-                  if !once {
+				var dataQuizzes util.Quizzes
+				var attemptQuizzes util.Quizzes
 
-                    completionModule.Score = score
+				if attemptQuizzes, err = util.ParseQuizzes([]byte(dataQuizzesJSON)); err != nil {
 
-                    if err = completionModuleRepo.Update(completionModule, "id = ?", completionModule.ID); err != nil {
+					return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+				}
 
-                      return ctx.InternalServerError(kornet.Msg(err.Error(), true))
-                    }
+				// get course id from module id
+				if module, err = moduleRepo.Find("id = ?", moduleId); module != nil {
 
-                    return ctx.OK(kornet.Msg(fmt.Sprintf("your score is %d passed", score), false))
-                  }
+					if checkout, err = checkoutRepo.Find("course_id = ? AND user_id = ?", module.CourseID, userModel.ID); checkout != nil {
 
-                  return ctx.BadRequest(kornet.Msg("take quiz only once", true))
-                }
+						if quizzes, err = quizRepo.Find("module_id = ?", moduleId); quizzes != nil {
 
-                if _, err = completionModuleRepo.Create(&models.CompletionModules{
-                  Model:    &easy.Model{},
-                  UserID:   userModel.ID,
-                  CourseID: checkout.CourseID,
-                  ModuleID: module.ID,
-                  Score:    score,
-                }); err != nil {
+							if dataQuizzes, err = util.ParseQuizzes([]byte(quizzes.Data)); err != nil {
 
-                  return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+								return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+							}
 
-                }
+							// get quizzes score
+							score := util.QuizScore(dataQuizzes, attemptQuizzes)
 
-                // passed by score
-                return ctx.Message(fmt.Sprintf("your score is %d passed", score))
-              }
+							if minScoreRequired <= score {
 
-              // not passed
-              return ctx.OK(kornet.Msg(fmt.Sprintf("your score is %d not enough to passed", score), false))
-            }
+								// TODO
+								// check all modules in data course
+								// insert into completion_courses
+								// make event notify to admin
 
-            return ctx.BadRequest(kornet.Msg("quizzes not found", true))
-          }
+								once := false
 
-          return ctx.BadRequest(kornet.Msg("user not enrolled course", true))
-        }
+								pp.Void(&once)
 
-        return ctx.BadRequest(kornet.Msg("module not found", true))
-      }
-    }
+								var completionModule *models.CompletionModules
 
-    return ctx.InternalServerError(kornet.Msg("unable to get user information", true))
-  })
+								if completionModule, err = completionModuleRepo.Find("user_id = ? AND module_id = ?", userModel.ID, module.ID); completionModule != nil {
+
+									if !once {
+
+										completionModule.Score = score
+
+										if err = completionModuleRepo.Update(completionModule, "id = ?", completionModule.ID); err != nil {
+
+											return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+										}
+
+										return ctx.OK(kornet.Msg(fmt.Sprintf("your score is %d passed", score), false))
+									}
+
+									return ctx.BadRequest(kornet.Msg("take quiz only once", true))
+								}
+
+								if _, err = completionModuleRepo.Create(&models.CompletionModules{
+									Model:    &easy.Model{},
+									UserID:   userModel.ID,
+									CourseID: checkout.CourseID,
+									ModuleID: module.ID,
+									Score:    score,
+								}); err != nil {
+
+									return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+
+								}
+
+								// passed by score
+								return ctx.Message(fmt.Sprintf("your score is %d passed", score))
+							}
+
+							// not passed
+							return ctx.OK(kornet.Msg(fmt.Sprintf("your score is %d not enough to passed", score), false))
+						}
+
+						return ctx.BadRequest(kornet.Msg("quizzes not found", true))
+					}
+
+					return ctx.BadRequest(kornet.Msg("user not enrolled course", true))
+				}
+
+				return ctx.BadRequest(kornet.Msg("module not found", true))
+			}
+		}
+
+		return ctx.InternalServerError(kornet.Msg("unable to get user information", true))
+	})
 }

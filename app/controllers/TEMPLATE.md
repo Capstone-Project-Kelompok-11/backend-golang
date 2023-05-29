@@ -45,7 +45,9 @@ func (ctx *swag.SwagContext) error {
 		
       ...
 		
-      return ctx.OK(kornet.Msg("pong", false))
+      return ctx.OK(kornet.ResultNew(kornet.MessageNew("pong", false), &m.KMap{
+        "yo": "whats up",
+      }))
     }
   }
 
