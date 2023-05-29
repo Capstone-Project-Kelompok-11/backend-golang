@@ -53,6 +53,22 @@ CREATE TABLE public.assignments (
 ALTER TABLE public.assignments OWNER TO "user";
 
 --
+-- Name: banners; Type: TABLE; Schema: public; Owner: user
+--
+
+CREATE TABLE public.banners (
+    id character varying(32) NOT NULL,
+    created_at timestamp with time zone,
+    updated_at timestamp with time zone,
+    deleted_at timestamp with time zone,
+    alt text,
+    src text
+);
+
+
+ALTER TABLE public.banners OWNER TO "user";
+
+--
 -- Name: categories; Type: TABLE; Schema: public; Owner: user
 --
 
@@ -298,6 +314,14 @@ ALTER TABLE ONLY public.assignments
 
 
 --
+-- Name: banners banners_pkey; Type: CONSTRAINT; Schema: public; Owner: user
+--
+
+ALTER TABLE ONLY public.banners
+    ADD CONSTRAINT banners_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: categories categories_name_key; Type: CONSTRAINT; Schema: public; Owner: user
 --
 
@@ -454,6 +478,13 @@ ALTER TABLE ONLY public.users
 --
 
 CREATE INDEX idx_assignments_deleted_at ON public.assignments USING btree (deleted_at);
+
+
+--
+-- Name: idx_banners_deleted_at; Type: INDEX; Schema: public; Owner: user
+--
+
+CREATE INDEX idx_banners_deleted_at ON public.banners USING btree (deleted_at);
 
 
 --
