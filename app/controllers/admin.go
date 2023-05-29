@@ -1092,7 +1092,9 @@ func AdminController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
         "Authorization": "string",
       },
     },
-    "responses": swag.OkJSON([]m.KMapImpl{}),
+    "responses": swag.OkJSON(&kornet.Result{
+      Data: []m.KMapImpl{},
+    }),
   }, func(ctx *swag.SwagContext) error {
 
     kReq, _ := ctx.Kornet()

@@ -140,19 +140,21 @@ func AnonymController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
         "sort?":   "string",
       },
     },
-    "responses": swag.OkJSON([]m.KMapImpl{
-      &m.KMap{
-        "id":          "string",
-        "name":        "string",
-        "description": "string",
-        "thumbnail":   "string",
-        "video":       "string",
-        "document":    "string",
-        "price":       "number",
-        "level":       "string",
-        "rating":      "number",
-        "finished":    "number",
-        "members":     "number",
+    "responses": swag.OkJSON(&kornet.Result{
+      Data: []m.KMapImpl{
+        &m.KMap{
+          "id":          "string",
+          "name":        "string",
+          "description": "string",
+          "thumbnail":   "string",
+          "video":       "string",
+          "document":    "string",
+          "price":       "number",
+          "level":       "string",
+          "rating":      "number",
+          "finished":    "number",
+          "members":     "number",
+        },
       },
     }),
   }, func(ctx *swag.SwagContext) error {

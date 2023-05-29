@@ -18,7 +18,7 @@ func CourseDataCollective(data []models.Courses) []m.KMapImpl {
       "thumbnail":   course.Thumbnail,
       "video":       course.Video,
       "document":    course.Document,
-      "price":       course.Price,
+      "price":       course.Price.BigInt(),
       "level":       course.Level,
       "rating": RatingView(Rating{
         Rating1: course.Rating1,
