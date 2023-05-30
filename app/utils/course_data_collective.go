@@ -30,6 +30,8 @@ func CourseDataCollective(data []models.Courses) []m.KMapImpl {
       "finished":         course.Finished,
       "member_count":     course.MemberCount,
       "category_courses": course.CategoryCourses,
+      "created_at":       course.CreatedAt,
+      "update_at":        course.UpdatedAt,
     }
 
     if course.Modules != nil {

@@ -33,5 +33,5 @@ func RatingView(rating Rating) float64 {
     return z
   }
 
-  return 0
+  return z
 }

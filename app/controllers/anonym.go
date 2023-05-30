@@ -21,6 +21,11 @@ func AnonymController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
   courseRepo, _ := repository.CourseRepositoryNew(DB)
   categoryRepo, _ := repository.CategoryRepositoryNew(DB)
   bannerRepo, _ := repository.BannerRepositoryNew(DB)
+  reviewRepo, _ := repository.ReviewCourseRepositoryNew(DB)
+  userRepo, _ := repository.UserRepositoryNew(DB)
+
+  pp.Void(reviewRepo)
+  pp.Void(userRepo)
 
   router.Get("/ping", &m.KMap{
     "description": "Testing Response",
@@ -282,4 +287,56 @@ func AnonymController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
 
       return ctx.OK(kornet.ResultNew(kornet.MessageNew("catch all banners", false), banners))
     })
+
+  router.Get("/course/reviews", &m.KMap{
+    "description": "Get Public Course Reviews",
+    "request": &m.KMap{
+      "params": &m.KMap{
+        "page": "number",
+        "size": "number",
+      },
+      "headers": &m.KMap{
+        "Authorization": "string",
+      },
+    },
+    "responses": swag.OkJSON(&kornet.Result{}),
+  }, func(ctx *swag.SwagContext) error {
+
+    var err error
+    var reviews []models.ReviewCourses
+
+    kReq, _ := ctx.Kornet()
+    size := util.ValueToInt(kReq.Query.Get("size"))
+    page := util.ValueToInt(kReq.Query.Get("page"))
+
+    if reviews, err = reviewRepo.CatchAll(size, page); err != nil {
+
+      return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+    }
+
+    exposed := make([]m.KMapImpl, 0)
+
+    for _, review := range reviews {
+
+      var user *models.Users
+
+      if user, err = userRepo.Find("id", review.UserID); user != nil {
+
+        exposed = append(exposed, &m.KMap{
+          "id": review.ID,
+          "user": &m.KMap{
+            "name":     user.Name.String,
+            "username": user.Username,
+            "image":    user.Image,
+          },
+          "rating":  review.Rating,
+          "comment": review.Description,
+        })
+
+        continue
+      }
+    }
+
+    return ctx.OK(kornet.ResultNew(kornet.MessageNew("catch all reviews", false), exposed))
+  })
 }

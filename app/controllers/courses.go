@@ -26,10 +26,16 @@ func CourseController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
   courseRepo, _ := repository.CourseRepositoryNew(DB)
   moduleRepo, _ := repository.ModuleRepositoryNew(DB)
   quizRepo, _ := repository.QuizzesRepositoryNew(DB)
+  eventRepo, _ := repository.EventRepositoryNew(DB)
+  reviewRepo, _ := repository.ReviewCourseRepositoryNew(DB)
 
   completionModuleRepo, _ := repository.CompletionModuleRepositoryNew(DB)
+  completionCourseRepo, _ := repository.CompletionCourseRepositoryNew(DB)
 
   pp.Void(courseRepo)
+  pp.Void(completionCourseRepo)
+  pp.Void(eventRepo)
+  pp.Void(reviewRepo)
 
   router.Get("/course", &m.KMap{
     "AuthToken":   true,
@@ -99,6 +105,17 @@ func CourseController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
             }
 
             exposed.Set("modules", moduleExposed)
+
+            // check completion course
+            exposed.Put("completion", false)
+
+            var completionCourse *models.CompletionCourses
+
+            if completionCourse, err = completionCourseRepo.Find("user_id = ? AND course_id = ?", userModel.ID, courseId); completionCourseRepo != nil {
+
+              pp.Void(completionCourse)
+              exposed.Set("completion", true)
+            }
 
             return ctx.OK(kornet.ResultNew(kornet.MessageNew("catch full course", false), exposed))
           }
@@ -262,6 +279,86 @@ func CourseController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
                 // check all modules in data course
                 // insert into completion_courses
                 // make event notify to admin
+                courseId := module.CourseID
+
+                var RecoverCompletionCourse = func(ctx *swag.SwagContext) error {
+
+                  var completionModules []models.CompletionModules
+                  var modules []models.Modules
+                  var course *models.Courses
+
+                  if completionModules, err = completionModuleRepo.FindAll(-1, -1, "course_id = ?", courseId); err != nil {
+
+                    return err
+                  }
+                  if modules, err = moduleRepo.FindAll(-1, -1, "course_id = ?", courseId); err != nil {
+
+                    return err
+                  }
+
+                  scoreAvg := 0
+                  completion := true
+
+                  for _, completionModule := range completionModules {
+
+                    found := false
+                    for _, moduleCheck := range modules {
+
+                      if completionModule.ModuleID == moduleCheck.ID {
+
+                        scoreAvg += completionModule.Score
+                        found = true
+                        break
+                      }
+                    }
+
+                    if !found {
+
+                      completion = false
+                      break
+                    }
+                  }
+
+                  scoreAvg /= len(completionModules)
+
+                  if completion {
+
+                    if course, err = courseRepo.Find("id = ?", courseId); course != nil {
+
+                      // create completion
+                      if _, err = completionCourseRepo.Create(&models.CompletionCourses{
+                        Model:    &easy.Model{},
+                        UserID:   userModel.ID,
+                        CourseID: courseId,
+                        Score:    scoreAvg,
+                      }); err != nil {
+
+                        return err
+                      }
+
+                      course.Finished += 1
+
+                      // update course finished count
+                      if err = courseRepo.Update(course, "id = ?", course.ID); err != nil {
+
+                        return err
+                      }
+
+                      // create events
+                      if _, err = eventRepo.Create(&models.Events{
+                        Model:       &easy.Model{},
+                        UserID:      userModel.ID,
+                        Name:        "completion course",
+                        Description: fmt.Sprintf("completion course %s", course.Name),
+                      }); err != nil {
+
+                        return err
+                      }
+                    }
+                  }
+
+                  return nil
+                }
 
                 once := false
 
@@ -280,6 +377,12 @@ func CourseController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
                       return ctx.InternalServerError(kornet.Msg(err.Error(), true))
                     }
 
+                    if err = RecoverCompletionCourse(ctx); err != nil {
+
+                      return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+                    }
+
+                    // passed by score, once
                     return ctx.OK(kornet.Msg(fmt.Sprintf("your score is %d passed", score), false))
                   }
 
@@ -298,8 +401,13 @@ func CourseController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
 
                 }
 
+                if err = RecoverCompletionCourse(ctx); err != nil {
+
+                  return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+                }
+
                 // passed by score
-                return ctx.Message(fmt.Sprintf("your score is %d passed", score))
+                return ctx.OK(kornet.Msg(fmt.Sprintf("your score is %d passed", score), false))
               }
 
               // not passed
@@ -317,5 +425,127 @@ func CourseController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
     }
 
     return ctx.InternalServerError(kornet.Msg("unable to get user information", true))
+  })
+
+  router.Post("/course/review", &m.KMap{
+    "AuthToken":   true,
+    "description": "Review Course After Completion",
+    "request": &m.KMap{
+      "params": &m.KMap{
+        "id": "string", // course id
+      },
+      "headers": &m.KMap{
+        "Authorization": "string",
+      },
+      "body": swag.JSON(&m.KMap{
+        "rating":  "number",
+        "comment": "string",
+      }),
+    },
+    "response": swag.OkJSON(&kornet.Result{}),
+  }, func(ctx *swag.SwagContext) error {
+
+    var err error
+
+    pp.Void(err)
+
+    if ctx.Event() {
+
+      if userModel, ok := ctx.Target().(*mo.UserModel); ok {
+
+        pp.Void(userModel)
+
+        kReq, _ := ctx.Kornet()
+
+        body := &m.KMap{}
+
+        if err = json.Unmarshal(kReq.Body.ReadAll(), body); err != nil {
+
+          return ctx.InternalServerError(kornet.Msg("unable to parse request body", true))
+        }
+
+        rating := util.ValueToInt(body.Get("rating"))
+        comment := m.KValueToString(body.Get("comment"))
+
+        courseId := m.KValueToString(kReq.Query.Get("id"))
+
+        var completionCourse *models.CompletionCourses
+        var course *models.Courses
+
+        rates := []int{0, 1, 2, 3, 4, 5}
+
+        found := false
+        for _, rate := range rates {
+
+          if rate == rating {
+
+            found = true
+            break
+          }
+        }
+
+        if !found {
+
+          return ctx.BadRequest(kornet.Msg("invalid rating", true))
+        }
+
+        var reviewCourse *models.ReviewCourses
+
+        if reviewCourse, err = reviewRepo.Find("user_id = ? AND course_id = ?", userModel.ID, courseId); reviewCourse != nil {
+
+          return ctx.BadRequest(kornet.Msg("you have already reviewed this course", false))
+        }
+
+        if course, err = courseRepo.Find("id = ?", courseId); course != nil {
+
+          if completionCourse, err = completionCourseRepo.Find("user_id = ? AND course_id = ?", userModel.ID, courseId); completionCourse != nil {
+
+            if _, err = reviewRepo.Create(&models.ReviewCourses{
+              Model:       &easy.Model{},
+              CourseID:    course.ID,
+              UserID:      userModel.ID,
+              Description: comment,
+              Rating:      rating,
+            }); err != nil {
+
+              return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+            }
+
+            switch rating {
+            case 1:
+              course.Rating1 += 1
+              break
+            case 2:
+              course.Rating2 += 1
+              break
+            case 3:
+              course.Rating3 += 1
+              break
+            case 4:
+              course.Rating4 += 1
+              break
+            case 5:
+              course.Rating5 += 1
+              break
+            }
+
+            // update course
+            if err = courseRepo.Update(course, "id = ?", course.ID); err != nil {
+
+              return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+            }
+
+            return ctx.OK(kornet.Msg("success", false))
+          }
+
+          return ctx.BadRequest(kornet.Msg("you doesn't completed this course", true))
+
+        }
+
+        return ctx.BadRequest(kornet.Msg("course not found", true))
+      }
+    }
+
+    return nil
   })
 }

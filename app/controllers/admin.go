@@ -1096,7 +1096,21 @@ func AdminController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
       },
     },
     "responses": swag.OkJSON(&kornet.Result{
-      Data: []m.KMapImpl{},
+      Data: []m.KMapImpl{
+        &m.KMap{
+          "data": nil,
+          "user": &m.KMap{
+            "name":     "string",
+            "username": "string",
+            "email":    "string",
+          },
+          "course": &m.KMap{
+            "name": "string",
+          },
+          "paid":   "boolean",
+          "cancel": "boolean",
+        },
+      },
     }),
   }, func(ctx *swag.SwagContext) error {
 
@@ -1107,7 +1121,7 @@ func AdminController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
     var err error
     var data []models.Checkout
 
-    if data, err = checkoutRepo.CatchAll(size, page); err != nil {
+    if data, err = checkoutRepo.Unscoped().CatchAll(size, page); err != nil {
 
       return ctx.InternalServerError(kornet.Msg(err.Error(), true))
     }
@@ -1139,6 +1153,8 @@ func AdminController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
         "course": &m.KMap{
           "name": course.Name,
         },
+        "paid":   checkout.Verify,
+        "cancel": checkout.DeletedAt.Valid,
       }
     }
 
