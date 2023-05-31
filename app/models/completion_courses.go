@@ -12,9 +12,10 @@ Pre Cache Rating
 
 type CompletionCourses struct {
   *easy.Model
-  UserID   string `gorm:"type:VARCHAR(32);not null" json:"user_id"`
-  CourseID string `gorm:"type:VARCHAR(32);not null" json:"course_id"`
-  Score    int    `json:"score"`
+  UserID      string `gorm:"type:VARCHAR(32);not null" json:"user_id"`
+  CourseID    string `gorm:"type:VARCHAR(32);not null" json:"course_id"`
+  Score       int    `json:"score"`
+  Certificate string `json:"certificate"`
 }
 
 func (CompletionCourses) TableName() string {

@@ -6,11 +6,13 @@ import (
   "lms/app/models"
   "lms/app/repository"
   util "lms/app/utils"
+  "net/url"
   "skfw/papaya"
   "skfw/papaya/bunny/swag"
   "skfw/papaya/koala/kornet"
   m "skfw/papaya/koala/mapping"
   "skfw/papaya/koala/pp"
+  "skfw/papaya/koala/tools/posix"
   mo "skfw/papaya/pigeon/templates/basicAuth/models"
   bacx "skfw/papaya/pigeon/templates/basicAuth/util"
   "time"
@@ -22,6 +24,11 @@ func ActionController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
   DB := conn.GORM()
 
   userRepo, _ := repository.UserRepositoryNew(DB)
+  completionCourseRepo, _ := repository.CompletionCourseRepositoryNew(DB)
+  courseRepo, _ := repository.CourseRepositoryNew(DB)
+
+  pp.Void(completionCourseRepo)
+  pp.Void(courseRepo)
 
   router.Get("/info", &m.KMap{
     "AuthToken":   true,
@@ -266,6 +273,97 @@ func ActionController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
         }
 
         return ctx.BadRequest(kornet.Msg("unable to get user information", true))
+      }
+    }
+
+    return ctx.InternalServerError(kornet.Msg("unable to get user information", true))
+  })
+
+  router.Get("/course/certificate", &m.KMap{
+    "AuthToken":   true,
+    "description": "User Course Certificate",
+    "request": &m.KMap{
+      "params": &m.KMap{
+        "id": "string", // course id
+      },
+      "headers": &m.KMap{
+        "Authorization": "string",
+      },
+    },
+    "responses": swag.OkJSON(&kornet.Message{}),
+  }, func(ctx *swag.SwagContext) error {
+
+    var err error
+
+    pp.Void(err)
+
+    if ctx.Event() {
+
+      if userModel, ok := ctx.Target().(*mo.UserModel); ok {
+
+        pp.Void(userModel)
+
+        kReq, _ := ctx.Kornet()
+
+        courseId := m.KValueToString(kReq.Query.Get("id"))
+
+        var completionCourse *models.CompletionCourses
+        var course *models.Courses
+
+        if completionCourse, err = completionCourseRepo.Find("user_id = ? AND course_id = ?", userModel.ID, courseId); err != nil {
+
+          return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+        }
+
+        var URL *url.URL
+
+        if URL, err = url.Parse(ctx.BaseURL()); err != nil {
+
+          return ctx.InternalServerError(kornet.Msg("unable to parse base url", true))
+        }
+
+        URL.Path = "/api/v1/public/cert"
+        URL.RawPath = "/api/v1/public/cert"
+
+        docURL := posix.KPathNew(URL.String())
+
+        if completionCourse.Certificate != "" {
+
+          return ctx.OK(kornet.ResultNew(kornet.MessageNew("certificate already exist", false), &m.KMap{
+
+            "certificate": completionCourse.Certificate,
+            "image":       docURL.Copy().JoinStr(completionCourse.Certificate + ".jpg"),
+            "url":         docURL.Copy().JoinStr(completionCourse.Certificate + ".pdf"),
+          }))
+        }
+
+        if course, err = courseRepo.Find("id = ?", courseId); err != nil {
+
+          return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+        }
+
+        var certName string
+
+        if certName, err = util.GenerateCertificateInCaches(course.Name, pp.Qstr(userModel.Name.String, userModel.Username)); err != nil {
+
+          return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+        }
+
+        certName = posix.KPathNew(certName).BaseStr()
+
+        completionCourse.Certificate = certName
+
+        if err = completionCourseRepo.Update(completionCourse, "id = ?", completionCourse.ID); err != nil {
+
+          return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+        }
+
+        return ctx.OK(kornet.ResultNew(kornet.MessageNew("create certificate", false), &m.KMap{
+
+          "certificate": completionCourse.Certificate,
+          "image":       docURL.Copy().JoinStr(completionCourse.Certificate + ".jpg"),
+          "url":         docURL.Copy().JoinStr(completionCourse.Certificate + ".pdf"),
+        }))
       }
     }
 
