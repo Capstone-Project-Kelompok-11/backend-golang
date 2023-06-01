@@ -219,7 +219,7 @@ func (c *CourseRepository) PreFindByCheckUserAndCourseId(userId string, courseId
     Preload("Checkout", "id IN (?)", c.GORM().
       Table("checkout").
       Select("id").
-      Where("verify = true AND user_id = ?", userId)).
+      Where("verify = true AND user_id = ? AND course_id = ?", userId, courseId)).
     Preload("Modules").
     Where("id = ?", courseId).
     Find(&data).

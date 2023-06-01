@@ -13,6 +13,7 @@ import (
   "skfw/papaya/koala/pp"
   "skfw/papaya/pigeon/easy"
   mo "skfw/papaya/pigeon/templates/basicAuth/models"
+  "time"
 )
 
 func AdminController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
@@ -28,8 +29,9 @@ func AdminController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
   moduleRepo, _ := repository.ModuleRepositoryNew(DB)
   quizRepo, _ := repository.QuizzesRepositoryNew(DB)
   bannerRepo, _ := repository.BannerRepositoryNew(DB)
+  eventRepo, _ := repository.EventRepositoryNew(DB)
 
-  pp.Void(bannerRepo)
+  pp.Void(bannerRepo, eventRepo)
 
   router.Post("/course/thumbnail/upload", &m.KMap{
     "AuthToken":   true,
@@ -1632,4 +1634,91 @@ func AdminController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
 
       return ctx.InternalServerError(kornet.Msg("unable to get user information", true))
     })
+
+  router.Get("/events", &m.KMap{
+    "AuthToken":   true,
+    "Admin":       true,
+    "description": "Catch All Notifications",
+    "request": &m.KMap{
+      "params": &m.KMap{
+        "size":       "number",
+        "page":       "number",
+        "after_at?":  "number", // timestamp
+        "before_at?": "number", // timestamp
+      },
+      "headers": &m.KMap{
+        "Authorization": "string",
+      },
+    },
+    "responses": swag.OkJSON(&kornet.Result{}),
+  }, func(ctx *swag.SwagContext) error {
+
+    var err error
+
+    pp.Void(err)
+
+    if ctx.Event() {
+
+      if userModel, ok := ctx.Target().(*mo.UserModel); ok {
+
+        pp.Void(userModel)
+
+        kReq, _ := ctx.Kornet()
+
+        var afterAt, beforeAt int64
+
+        size := util.ValueToInt(kReq.Query.Get("size"))
+        page := util.ValueToInt(kReq.Query.Get("page"))
+        afterAt = int64(util.ValueToInt(kReq.Query.Get("after_at")))
+        beforeAt = int64(util.ValueToInt(kReq.Query.Get("before_at")))
+
+        pp.Void(size, page, afterAt, beforeAt)
+
+        if afterAt == 0 {
+
+          afterAt = time.Now().UTC().AddDate(0, 0, -7).UnixMilli()
+        }
+
+        if beforeAt == 0 {
+
+          beforeAt = time.Now().UTC().UnixMilli()
+        }
+
+        var events []models.Events
+
+        if events, err = eventRepo.FindAll(size, page, "created_at BETWEEN ? AND ?", time.UnixMilli(afterAt), time.UnixMilli(beforeAt)); err != nil {
+
+          return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+        }
+
+        data := make([]m.KMapImpl, 0)
+
+        for _, event := range events {
+
+          exposed := &m.KMap{}
+          userId := event.UserID
+
+          if user, _ := userRepo.Find("id = ?", userId); user != nil {
+
+            exposed.Put("user", &m.KMap{
+              "name":     user.Name.String,
+              "username": user.Username,
+              "image":    user.Image,
+            })
+          }
+
+          exposed.Put("event", &m.KMap{
+            "name":        event.Name,
+            "description": event.Description,
+          })
+
+          data = append(data, exposed)
+        }
+
+        return ctx.OK(kornet.ResultNew(kornet.MessageNew("successful get events", false), data))
+      }
+    }
+
+    return ctx.InternalServerError(kornet.Msg("unable to get user information", true))
+  })
 }
