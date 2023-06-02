@@ -4,7 +4,7 @@ CLOUD_USER=root
 CLOUD_ADDR=skfw.net
 
 cat << "EOF" | ssh -T $CLOUD_USER@$CLOUD_ADDR
-mkdir -p /app/assets/public /app/assets/public/caches /app/assets/documents /app/assets/images /app/assets/videos /app/templates/documents/certificates
+mkdir -p /app/assets/fonts /app/assets/public /app/assets/public/caches /app/assets/public/documents /app/assets/public/images /app/assets/public/videos /app/templates/documents/certificates
 ln -sfn /app/assets /assets
 ln -sfn /app/templates /templates
 systemctl stop app
@@ -15,6 +15,10 @@ cloud/init/base.psql \
 cloud/app.service \
 bin/start \
 $CLOUD_USER@$CLOUD_ADDR:/app
+
+scp \
+assets/fonts/arial.ttf \
+$CLOUD_USER@$CLOUD_ADDR:/app/assets/fonts/arial.ttf
 
 scp \
 templates/documents/certificates/cert.pdf \

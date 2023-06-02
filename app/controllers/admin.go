@@ -6,11 +6,13 @@ import (
   "lms/app/models"
   "lms/app/repository"
   util "lms/app/utils"
+  "net/url"
   "skfw/papaya"
   "skfw/papaya/bunny/swag"
   "skfw/papaya/koala/kornet"
   m "skfw/papaya/koala/mapping"
   "skfw/papaya/koala/pp"
+  "skfw/papaya/koala/tools/posix"
   "skfw/papaya/pigeon/easy"
   mo "skfw/papaya/pigeon/templates/basicAuth/models"
   "time"
@@ -30,8 +32,8 @@ func AdminController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
   quizRepo, _ := repository.QuizzesRepositoryNew(DB)
   bannerRepo, _ := repository.BannerRepositoryNew(DB)
   eventRepo, _ := repository.EventRepositoryNew(DB)
-
-  pp.Void(bannerRepo, eventRepo)
+  assignRepo, _ := repository.AssignmentRepositoryNew(DB)
+  completionCourseRepo, _ := repository.CompletionCourseRepositoryNew(DB)
 
   router.Post("/course/thumbnail/upload", &m.KMap{
     "AuthToken":   true,
@@ -1720,5 +1722,153 @@ func AdminController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
     }
 
     return ctx.InternalServerError(kornet.Msg("unable to get user information", true))
+  })
+
+  router.Get("/course/resumes", &m.KMap{
+    "AuthToken":   true,
+    "Admin":       true,
+    "description": "Catch All Course Resume",
+    "request": &m.KMap{
+      "params": &m.KMap{
+        "size": "number",
+        "page": "number",
+      },
+      "headers": &m.KMap{
+        "Authorization": "string",
+      },
+    },
+    "responses": swag.OkJSON(&kornet.Result{}),
+  }, func(ctx *swag.SwagContext) error {
+
+    var err error
+    var assigns []models.Assignments
+
+    pp.Void(err, assigns)
+
+    kReq, _ := ctx.Kornet()
+    size := util.ValueToInt(kReq.Query.Get("size"))
+    page := util.ValueToInt(kReq.Query.Get("page"))
+
+    var URL *url.URL
+
+    if URL, err = url.Parse(ctx.BaseURL()); err != nil {
+
+      return ctx.InternalServerError(kornet.Msg("unable to parse base url", true))
+    }
+
+    if assigns, err = assignRepo.CatchAll(size, page); err != nil {
+
+      return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+    }
+
+    data := make([]m.KMapImpl, 0)
+
+    for _, assign := range assigns {
+
+      URL.Path = "/api/v1/public/documents"
+      URL.RawPath = URL.Path
+
+      exposed := &m.KMap{}
+      userId := assign.UserID
+
+      if user, _ := userRepo.Find("id = ?", userId); user != nil {
+
+        exposed.Put("user", &m.KMap{
+          "name":     user.Name.String,
+          "username": user.Username,
+          "image":    user.Image,
+        })
+      }
+
+      URL.Path = posix.KPathNew(URL.Path).JoinStr(assign.Document)
+      URL.RawPath = URL.Path
+
+      exposed.Put("data", &m.KMap{
+        "id":           assign.ID,
+        "document":     assign.Document,
+        "document_url": URL.String(),
+        "video":        assign.Video,
+      })
+
+      data = append(data, exposed)
+    }
+
+    return ctx.OK(kornet.ResultNew(kornet.MessageNew("successful get course resumes", false), data))
+  })
+
+  router.Post("/course/resume/grade", &m.KMap{
+    "AuthToken":   true,
+    "Admin":       true,
+    "description": "Grade Course Resume",
+    "request": &m.KMap{
+      "params": &m.KMap{
+        "id": "string", // resume id
+      },
+      "headers": &m.KMap{
+        "Authorization": "string",
+      },
+      "body": swag.JSON(&m.KMap{
+        "grade": "number",
+      }),
+    },
+    "responses": swag.OkJSON(&kornet.Result{}),
+  }, func(ctx *swag.SwagContext) error {
+
+    var err error
+    var assign *models.Assignments
+
+    pp.Void(err, assign)
+
+    kReq, _ := ctx.Kornet()
+    assignId := m.KValueToString(kReq.Query.Get("id"))
+
+    body := &m.KMap{}
+
+    if err = json.Unmarshal(kReq.Body.ReadAll(), body); err != nil {
+
+      return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+    }
+
+    var completionCourse *models.CompletionCourses
+
+    pp.Void(completionCourse)
+
+    if assign, err = assignRepo.Find("id = ?", assignId); err != nil {
+
+      return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+    }
+
+    if completionCourse, err = completionCourseRepo.Find("user_id = ? AND course_id = ?", assign.UserID, assign.CourseID); err != nil {
+
+      return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+    }
+
+    grade := util.ValueToInt(body.Get("grade"))
+
+    score := assign.Score
+
+    if assign, err = assignRepo.Grade(assignId, grade); err != nil {
+
+      return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+    }
+
+    // back scoring by worst math formula
+    if score > 0 {
+
+      // z = (a + b) / c
+      // a = (z * c) - b
+      completionCourse.Score = (completionCourse.Score * 2) - score
+    }
+
+    // :)
+    completionCourse.Score += grade
+    completionCourse.Score /= 2
+
+    if err = completionCourseRepo.Update(completionCourse, "id = ?", completionCourse.ID); err != nil {
+
+      return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+    }
+
+    return ctx.OK(kornet.ResultNew(kornet.MessageNew("successful grade course resume", false), assign))
   })
 }

@@ -16,6 +16,7 @@ type Assignments struct {
   CourseID string `gorm:"type:VARCHAR(32);not null" json:"course_id"`
   Video    string `json:"video"`
   Document string `json:"document"`
+  Score    int    `json:"score"`
 }
 
 func (Assignments) TableName() string {

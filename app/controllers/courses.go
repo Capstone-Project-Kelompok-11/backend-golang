@@ -6,11 +6,13 @@ import (
   "lms/app/models"
   "lms/app/repository"
   util "lms/app/utils"
+  "net/url"
   "skfw/papaya"
   "skfw/papaya/bunny/swag"
   "skfw/papaya/koala/kornet"
   m "skfw/papaya/koala/mapping"
   "skfw/papaya/koala/pp"
+  "skfw/papaya/koala/tools/posix"
   "skfw/papaya/pigeon/easy"
   mo "skfw/papaya/pigeon/templates/basicAuth/models"
 )
@@ -31,11 +33,9 @@ func CourseController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
 
   completionModuleRepo, _ := repository.CompletionModuleRepositoryNew(DB)
   completionCourseRepo, _ := repository.CompletionCourseRepositoryNew(DB)
+  assignRepo, _ := repository.AssignmentRepositoryNew(DB)
 
-  pp.Void(courseRepo)
-  pp.Void(completionCourseRepo)
-  pp.Void(eventRepo)
-  pp.Void(reviewRepo)
+  pp.Void(assignRepo)
 
   router.Get("/course", &m.KMap{
     "AuthToken":   true,
@@ -729,6 +729,235 @@ func CourseController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
         }
 
         return ctx.BadRequest(kornet.Msg("review not found", true))
+      }
+    }
+
+    return ctx.InternalServerError(kornet.Msg("unable to get user information", true))
+  })
+
+  router.Get("/course/resume", &m.KMap{
+    "AuthToken":   true,
+    "description": "Resume Course",
+    "request": &m.KMap{
+      "params": &m.KMap{
+        "id": "string", // course id
+      },
+      "headers": &m.KMap{
+        "Authorization": "string",
+      },
+    },
+    "response": swag.OkJSON(&kornet.Result{}),
+  }, func(ctx *swag.SwagContext) error {
+
+    var err error
+
+    pp.Void(err)
+
+    if ctx.Event() {
+
+      if userModel, ok := ctx.Target().(*mo.UserModel); ok {
+
+        pp.Void(userModel)
+
+        kReq, _ := ctx.Kornet()
+        courseId := m.KValueToString(kReq.Query.Get("id"))
+
+        var URL *url.URL
+
+        if URL, err = url.Parse(ctx.BaseURL()); err != nil {
+
+          return ctx.InternalServerError(kornet.Msg("unable to parse base url", true))
+        }
+
+        URL.Path = "/api/v1/public/documents"
+        URL.RawPath = URL.Path
+
+        var assign *models.Assignments
+
+        if assign, err = assignRepo.Find("user_id = ? AND course_id = ?", userModel.ID, courseId); assign != nil {
+
+          URL.Path = posix.KPathNew(URL.Path).JoinStr(assign.Document)
+          URL.RawPath = URL.Path
+
+          return ctx.OK(kornet.ResultNew(kornet.MessageNew("success", false), &m.KMap{
+            "id":           assign.ID,
+            "document":     assign.Document,
+            "document_url": URL.String(),
+            "video":        assign.Video,
+          }))
+        }
+
+        return ctx.BadRequest(kornet.Msg("assign not found", true))
+      }
+    }
+
+    return ctx.InternalServerError(kornet.Msg("unable to get user information", true))
+  })
+
+  router.Post("/course/resume", &m.KMap{
+    "AuthToken":   true,
+    "description": "Resume Course",
+    "request": &m.KMap{
+      "params": &m.KMap{
+        "id": "string", // course id
+      },
+      "headers": &m.KMap{
+        "Authorization": "string",
+      },
+      "body": swag.JSON(&m.KMap{
+        "video?": "string",
+      }),
+    },
+    "response": swag.CreatedJSON(&kornet.Result{}),
+  }, func(ctx *swag.SwagContext) error {
+
+    var err error
+
+    pp.Void(err)
+
+    if ctx.Event() {
+
+      if userModel, ok := ctx.Target().(*mo.UserModel); ok {
+
+        kReq, _ := ctx.Kornet()
+        courseId := m.KValueToString(kReq.Query.Get("id"))
+        videoSource := m.KValueToString(kReq.Query.Get("video"))
+
+        pp.Void(userModel, courseId, videoSource)
+
+        var filename string
+
+        filename, _ = util.GenUniqFileNameOutput("assets/public/documents", "resume")
+
+        var assign *models.Assignments
+        var course *models.Courses
+
+        if course, err = courseRepo.Find("id = ?", courseId); course != nil {
+
+          if assign, err = assignRepo.Create(&models.Assignments{
+            Model:    &easy.Model{},
+            UserID:   userModel.ID,
+            CourseID: courseId,
+          }); err != nil {
+
+            return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+          }
+
+          assign.Document = filename
+          assign.Video = videoSource
+
+          if err = util.SwagSaveDocument(ctx, filename, func(filename string) error {
+
+            assign.Document = filename
+
+            return assignRepo.Update(assign, "id = ?", assign.ID)
+
+          }); err != nil {
+
+            return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+          }
+
+          // create events
+          if _, err = eventRepo.Create(&models.Events{
+            Model:       &easy.Model{},
+            UserID:      userModel.ID,
+            Name:        "resume",
+            Description: fmt.Sprintf("%s resume by user %s", course.Name, userModel.Username),
+          }); err != nil {
+
+            return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+          }
+
+          return ctx.Created(kornet.Msg("success create resume", false))
+        }
+
+        return ctx.BadRequest(kornet.Msg("course not found", true))
+      }
+    }
+
+    return ctx.InternalServerError(kornet.Msg("unable to get user information", true))
+  })
+
+  router.Put("/course/resume", &m.KMap{
+    "AuthToken":   true,
+    "description": "Resume Course",
+    "request": &m.KMap{
+      "params": &m.KMap{
+        "id": "string", // assign id
+      },
+      "headers": &m.KMap{
+        "Authorization": "string",
+      },
+      "body": swag.JSON(&m.KMap{
+        "video?": "string",
+      }),
+    },
+    "response": swag.OkJSON(&kornet.Result{}),
+  }, func(ctx *swag.SwagContext) error {
+
+    var err error
+
+    pp.Void(err)
+
+    if ctx.Event() {
+
+      if userModel, ok := ctx.Target().(*mo.UserModel); ok {
+
+        kReq, _ := ctx.Kornet()
+        assignId := m.KValueToString(kReq.Query.Get("id"))
+        videoSource := m.KValueToString(kReq.Query.Get("video"))
+
+        pp.Void(userModel, assignId, videoSource)
+
+        var filename string
+
+        filename, _ = util.GenUniqFileNameOutput("assets/public/documents", "resume")
+
+        var assign *models.Assignments
+
+        if assign, err = assignRepo.Find("id = ?", assignId); assign != nil {
+
+          if videoSource != "" {
+
+            assign.Video = videoSource
+          }
+
+          if assign.Document != "" {
+
+            if err = util.SwagRemoveDocument(ctx, assign.Document); err != nil {
+
+              return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+            }
+          }
+
+          assign.Document = filename
+
+          if err = util.SwagSaveDocument(ctx, filename, func(filename string) error {
+
+            assign.Document = filename
+
+            return assignRepo.Update(assign, "id = ?", assign.ID)
+
+          }); err != nil {
+
+            return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+          }
+
+          // create events
+          if _, err = eventRepo.Create(&models.Events{
+            Model:       &easy.Model{},
+            UserID:      userModel.ID,
+            Name:        "update resume",
+            Description: fmt.Sprintf("update resume by user %s", userModel.Username),
+          }); err != nil {
+
+            return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+          }
+
+          return ctx.OK(kornet.Msg("success update resume", false))
+        }
+
+        return ctx.BadRequest(kornet.Msg("resume not found", true))
       }
     }
 

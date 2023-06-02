@@ -12,6 +12,7 @@ type AssignmentRepository struct {
 
 type AssignmentRepositoryImpl interface {
   easy.RepositoryImpl[models.Assignments]
+  Grade(id string, grade int) (*models.Assignments, error)
 }
 
 func AssignmentRepositoryNew(DB *gorm.DB) (AssignmentRepositoryImpl, error) {
@@ -81,4 +82,19 @@ func (m *AssignmentRepository) Unscoped() easy.RepositoryImpl[models.Assignments
 func (m *AssignmentRepository) GORM() *gorm.DB {
 
   return m.Repository.GORM()
+}
+
+func (m *AssignmentRepository) Grade(id string, grade int) (*models.Assignments, error) {
+
+  var err error
+  var assign *models.Assignments
+
+  if assign, err = m.Find("id = ?", id); err != nil {
+
+    return nil, err
+  }
+
+  assign.Score = grade
+
+  return assign, m.Update(assign, "id = ?", id)
 }
