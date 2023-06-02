@@ -13,6 +13,9 @@ release: build
 	cp build/bin/app bin/start
 	chmod a+x bin/start
 
+deploy: release
+	bash scripts/Deploy.sh
+
 dump-schema:
 	mkdir -p cloud/init
 	sudo -u postgres pg_dump --dbname academy --schema-only >cloud/init/academy.psql
