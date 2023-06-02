@@ -4,7 +4,7 @@ go 1.20
 
 require (
 	github.com/gofiber/fiber/v2 v2.46.0
-	github.com/h2non/bimg v1.1.9
+	//github.com/h2non/bimg v1.1.9
 	github.com/shopspring/decimal v1.3.1
 	github.com/signintech/gopdf v0.17.0
 	github.com/signintech/pdft v0.4.4
