@@ -1,6 +1,7 @@
 package controllers
 
 import (
+  "encoding/json"
   "lms/app/models"
   "lms/app/repository"
   "skfw/papaya"
@@ -163,7 +164,7 @@ func CheckoutController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
         }
 
         // check checkout if not exists
-        if checkout, err = checkoutRepo.Find("user_id = ?", userModel.ID); err != nil {
+        if checkout, err = checkoutRepo.Find("user_id = ? AND course_id = ?", userModel.ID, course.ID); err != nil {
 
           // create new checkout
           if checkout, err = checkoutRepo.Create(&models.Checkout{
@@ -251,6 +252,9 @@ func CheckoutController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
       "headers": &m.KMap{
         "Authorization": "string",
       },
+      "body": swag.JSON(&m.KMap{
+        "payment_method": "string",
+      }),
     },
     "responses": swag.OkJSON(&kornet.Result{}),
   }, func(ctx *swag.SwagContext) error {
@@ -263,16 +267,40 @@ func CheckoutController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
 
       if userModel, ok := ctx.Target().(*mo.UserModel); ok {
 
-        // verified checkout
-        if err = checkoutRepo.PreloadVerifyByUserId(userModel.ID); err != nil {
+        kReq, _ := ctx.Kornet()
+
+        body := &m.KMap{}
+
+        if err = json.Unmarshal(kReq.Body.ReadAll(), body); err != nil {
 
           return ctx.InternalServerError(kornet.Msg(err.Error(), true))
         }
 
-        // update member count in course member active
-        if err = courseRepo.UpdateMemberCountByUserId(userModel.ID); err != nil {
+        paymentMethod := m.KValueToString(body.Get("payment_method"))
+
+        // unverified checkout
+        var checkouts []models.Checkout
+
+        if checkouts, err = checkoutRepo.FindAll(-1, -1, "user_id = ? AND verify = ?", userModel.ID, false); err != nil {
 
           return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+        }
+
+        // verified checkout
+        if err = checkoutRepo.PreloadVerifyByUserId(userModel.ID, paymentMethod); err != nil {
+
+          return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+        }
+
+        for _, checkout := range checkouts {
+
+          courseId := checkout.CourseID
+
+          // update member count in course member active
+          if err = courseRepo.UpdateMemberCountById(courseId); err != nil {
+
+            return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+          }
         }
 
         return ctx.OK(kornet.Msg("checkout verified", false))

@@ -310,9 +310,14 @@ func ActionController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
         var completionCourse *models.CompletionCourses
         var course *models.Courses
 
+        if course, err = courseRepo.Find("id = ?", courseId); err != nil {
+
+          return ctx.InternalServerError(kornet.Msg("unable to get course information", true))
+        }
+
         if completionCourse, err = completionCourseRepo.Find("user_id = ? AND course_id = ?", userModel.ID, courseId); err != nil {
 
-          return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+          return ctx.BadRequest(kornet.Msg("you doesn't completion this course", true))
         }
 
         var URL *url.URL
@@ -335,11 +340,6 @@ func ActionController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
             "image":       docURL.Copy().JoinStr(completionCourse.Certificate + ".jpg"),
             "url":         docURL.Copy().JoinStr(completionCourse.Certificate + ".pdf"),
           }))
-        }
-
-        if course, err = courseRepo.Find("id = ?", courseId); err != nil {
-
-          return ctx.InternalServerError(kornet.Msg(err.Error(), true))
         }
 
         var certName string

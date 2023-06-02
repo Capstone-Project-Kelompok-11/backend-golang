@@ -17,7 +17,7 @@ type CourseRepositoryImpl interface {
   FindAllAndOrder(size int, page int, sort string, query any, args ...any) ([]models.Courses, error)
   PreFindAllAndOrder(size int, page int, sort string, query any, args ...any) ([]models.Courses, error)
   PreFind(query any, args ...any) (*models.Courses, error)
-  UpdateMemberCountByUserId(id string) error
+  UpdateMemberCountById(id string) error
   PreFindByCheckUserAndCourseId(userId string, courseId string) (*models.Courses, error)
   PreCatchAll(size int, page int) ([]models.Courses, error)
 }
@@ -236,12 +236,25 @@ func (c *CourseRepository) PreFindByCheckUserAndCourseId(userId string, courseId
   return nil, errors.New("course is empty")
 }
 
-func (c *CourseRepository) UpdateMemberCountByUserId(id string) error {
+func (c *CourseRepository) UpdateMemberCountById(id string) error {
 
   var err error
   c.SessionNew()
 
-  if err = c.GORM().Joins("INNER JOIN checkout ON courses.id = checkout.course_id").Where("checkout.user_id = ?", id).Update("courses.member_count", gorm.Expr("courses.member_count + 1")).Error; err != nil {
+  var course *models.Courses
+  memberCount := 0
+
+  if course, err = c.Find("id = ?", id); err != nil {
+
+    return err
+  }
+
+  memberCount = course.MemberCount + 1
+
+  if err = c.GORM().
+    Where("id = ?", id).
+    Updates(map[string]interface{}{"member_count": memberCount}).
+    Error; err != nil {
 
     return errors.New("unable to update member count")
   }

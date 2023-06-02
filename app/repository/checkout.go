@@ -14,7 +14,7 @@ type CheckoutRepository struct {
 
 type CheckoutRepositoryImpl interface {
   easy.RepositoryImpl[models.Checkout]
-  PreloadVerifyByUserId(id string) error
+  PreloadVerifyByUserId(id string, paymentMethod string) error
 }
 
 func CheckoutRepositoryNew(DB *gorm.DB) (CheckoutRepositoryImpl, error) {
@@ -86,13 +86,18 @@ func (m *CheckoutRepository) GORM() *gorm.DB {
   return m.Repository.GORM()
 }
 
-func (m *CheckoutRepository) PreloadVerifyByUserId(id string) error {
+func (m *CheckoutRepository) PreloadVerifyByUserId(id string, paymentMethod string) error {
 
   m.SessionNew()
 
   var err error
 
-  if err = m.GORM().Where("user_id = ?", id).Update("verify", true).Error; err != nil {
+  if err = m.GORM().
+    Where("user_id = ?", id).
+    Updates(map[string]any{
+      "payment_method": paymentMethod,
+      "verify":         true,
+    }).Error; err != nil {
 
     return errors.New(fmt.Sprintf("unable to catch courses"))
   }

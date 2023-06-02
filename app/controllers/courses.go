@@ -111,7 +111,7 @@ func CourseController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
 
             var completionCourse *models.CompletionCourses
 
-            if completionCourse, err = completionCourseRepo.Find("user_id = ? AND course_id = ?", userModel.ID, courseId); completionCourseRepo != nil {
+            if completionCourse, err = completionCourseRepo.Find("user_id = ? AND course_id = ?", userModel.ID, courseId); completionCourse != nil {
 
               pp.Void(completionCourse)
               exposed.Set("completion", true)
@@ -297,25 +297,30 @@ func CourseController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
                   }
 
                   scoreAvg := 0
-                  completion := true
+                  completion := false
 
-                  for _, completionModule := range completionModules {
+                  if len(completionModules) > 0 {
 
-                    found := false
-                    for _, moduleCheck := range modules {
+                    completion = true
 
-                      if completionModule.ModuleID == moduleCheck.ID {
+                    for _, completionModule := range completionModules {
 
-                        scoreAvg += completionModule.Score
-                        found = true
+                      moduleCompletion := false
+                      for _, moduleCheck := range modules {
+
+                        if completionModule.ModuleID == moduleCheck.ID {
+
+                          scoreAvg += completionModule.Score
+                          moduleCompletion = true
+                          break
+                        }
+                      }
+
+                      if !moduleCompletion {
+
+                        completion = false
                         break
                       }
-                    }
-
-                    if !found {
-
-                      completion = false
-                      break
                     }
                   }
 
