@@ -53,12 +53,13 @@ func Valid(source Choices, target Choices) bool {
 
   var found bool
   data := FindValidChoiceFromChoices(source)
+
   for _, attempt := range target {
 
-    found = false
-    for _, choice := range data {
+    if attempt.Valid {
 
-      if attempt.Valid {
+      found = false
+      for _, choice := range data {
 
         // check available answer in data source
         if attempt.Text == choice.Text {
@@ -67,11 +68,11 @@ func Valid(source Choices, target Choices) bool {
           break
         }
       }
-    }
 
-    if !found {
+      if !found {
 
-      return false
+        return false
+      }
     }
   }
 

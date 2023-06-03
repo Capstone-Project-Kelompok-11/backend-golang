@@ -189,4 +189,38 @@ func AnonymController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
 
     return ctx.OK(kornet.ResultNew(kornet.MessageNew("catch all courses", false), util.CourseDataCollective(data)))
   })
+
+  router.Get("/cert/:src", &m.KMap{
+    "description": "Get Public Certificate",
+    "request": &m.KMap{
+      "params": &m.KMap{
+        "#src": "string",
+      },
+    },
+    "responses": nil,
+  }, func(ctx *swag.SwagContext) error {
+
+    kReq, _ := ctx.Kornet()
+
+    src := util.SafePathName(m.KValueToString(kReq.Path.Get("src")))
+
+    if src != "" {
+
+      src = posix.KPathNew("assets/public/caches").JoinStr(src)
+
+      file := kio.KFileNew(src)
+
+      if file.IsExist() {
+
+        if file.IsFile() {
+
+          return ctx.SendFile(src, true)
+        }
+      }
+
+      return ctx.BadRequest(kornet.Msg("certificate not found", true))
+    }
+
+    return ctx.BadRequest(kornet.Msg("invalid path", true))
+  })
 }
