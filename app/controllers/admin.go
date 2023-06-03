@@ -1019,20 +1019,17 @@ func AdminController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
   router.Get("/course", &m.KMap{
     "AuthToken":   true,
     "Admin":       true,
-    "description": "Catch All Course",
+    "description": "Catch Course",
     "request": m.KMap{
       "params": &m.KMap{
-        "size":    "number",
-        "page":    "number",
-        "sort?":   "string",
-        "search?": "string",
+        "id": "string",
       },
       "headers": &m.KMap{
         "Authorization": "string",
       },
     },
-    "responses": swag.OkJSON([]m.KMapImpl{
-      &m.KMap{
+    "responses": swag.OkJSON(&kornet.Result{
+      Data: &m.KMap{
         "id":          "string",
         "name":        "string",
         "description": "string",
@@ -1045,6 +1042,75 @@ func AdminController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
         "finished":    "number",
         "members":     "number",
         "modules":     []models.Modules{},
+      },
+    }),
+  }, func(ctx *swag.SwagContext) error {
+
+    var err error
+    var userModel *mo.UserModel
+    var course *models.Courses
+    var ok bool
+
+    if ctx.Event() {
+
+      if userModel, ok = ctx.Target().(*mo.UserModel); ok {
+
+        pp.Void(userModel)
+
+        kReq, _ := ctx.Kornet()
+
+        courseId := m.KValueToString(kReq.Query.Get("id"))
+
+        if course, err = courseRepo.PreFind("id = ?", courseId); err != nil {
+
+          return ctx.BadRequest(kornet.Msg("course not found", true))
+        }
+
+        collective := util.CourseDataCollective([]models.Courses{*course})
+
+        if len(collective) > 0 {
+
+          return ctx.OK(kornet.ResultNew(kornet.MessageNew("get course information", false), collective[0]))
+        }
+
+        return ctx.BadRequest(kornet.Msg("course not found", true))
+      }
+    }
+
+    return ctx.InternalServerError(kornet.Msg("unable to get user information", true))
+  })
+
+  router.Get("/courses", &m.KMap{
+    "AuthToken":   true,
+    "Admin":       true,
+    "description": "Catch All Course",
+    "request": m.KMap{
+      "params": &m.KMap{
+        "size":    "number",
+        "page":    "number",
+        "sort?":   "string",
+        "search?": "string",
+      },
+      "headers": &m.KMap{
+        "Authorization": "string",
+      },
+    },
+    "responses": swag.OkJSON(&kornet.Result{
+      Data: []m.KMapImpl{
+        &m.KMap{
+          "id":          "string",
+          "name":        "string",
+          "description": "string",
+          "thumbnail":   "string",
+          "video":       "string",
+          "document":    "string",
+          "price":       "number",
+          "level":       "string",
+          "rating":      "number",
+          "finished":    "number",
+          "members":     "number",
+          "modules":     []models.Modules{},
+        },
       },
     }),
   }, func(ctx *swag.SwagContext) error {

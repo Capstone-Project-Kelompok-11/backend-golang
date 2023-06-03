@@ -19,3 +19,17 @@ deploy: release
 dump-schema:
 	mkdir -p cloud/init
 	sudo -u postgres pg_dump --dbname academy --schema-only >cloud/init/academy.psql
+
+docker-compose-build:
+	sudo env DOCKER_BUILDKIT=1 docker-compose -f compose.yml -p academy build
+
+docker-compose-up: docker-compose-build
+	sudo docker-compose up
+
+docker-build:
+	sudo env DOCKER_BUILDKIT=1 docker build -f Dockerfile -t academy .
+
+docker-down:
+	docker-compose down
+
+docker-up: docker-compose-up

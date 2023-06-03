@@ -19,6 +19,7 @@ func ManageControlResourceShared(pn papaya.NetImpl) error {
   manageConsumers.Grant("https://academy.skfw.net") // secure deploy
   manageConsumers.Grant("https://skfw.net")         // secure deploy
   manageConsumers.Grant("https://frontend-react-git-staging-academade.vercel.app")
+  manageConsumers.Grant("https://academade.vercel.app")
 
   pn.Use(cors.MakeMiddlewareForManageConsumers(manageConsumers))
 

@@ -142,10 +142,11 @@ func AnonymController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
     "description": "Catch All Courses",
     "request": &m.KMap{
       "params": &m.KMap{
-        "page":    "number",
-        "size":    "number",
-        "search?": "string",
-        "sort?":   "string",
+        "page":      "number",
+        "size":      "number",
+        "search?":   "string",
+        "sort?":     "string",
+        "category?": "string", // csv by comma
       },
     },
     "responses": swag.OkJSON(&kornet.Result{
@@ -176,6 +177,10 @@ func AnonymController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
     size := util.ValueToInt(kReq.Query.Get("size"))
     search := m.KValueToString(kReq.Query.Get("search"))
     sort := m.KValueToString(kReq.Query.Get("sort"))
+    category := m.KValueToString(kReq.Query.Get("category"))
+
+    // TODO
+    pp.Void(category)
 
     if search != "" {
 
