@@ -1,9 +1,11 @@
 package controllers
 
 import (
+  "database/sql"
   "encoding/json"
   "fmt"
   "github.com/shopspring/decimal"
+  "gorm.io/gorm"
   "lms/app/models"
   "lms/app/repository"
   util "lms/app/utils"
@@ -2068,24 +2070,34 @@ func AdminController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
   }, func(ctx *swag.SwagContext) error {
 
     var err error
+    var prepared *gorm.DB
+    var row *sql.Row
 
     data := Stat{}
 
-    prepared := userRepo.GORM().
+    userRepo.SessionNew()
+
+    prepared = userRepo.GORM().
       Select("COUNT(*) AS user").
       Where("admin = ?", false)
     if err = prepared.Error; err != nil {
 
-      fmt.Println(err)
       return ctx.InternalServerError(kornet.Msg("unable to catch user count", true))
     }
 
-    row := prepared.Row()
-    if err = row.Scan(&data.User); err != nil {
+    if prepared != nil {
+      if row = prepared.Row(); row != nil {
+        if err = row.Scan(&data.User); err != nil {
 
-      fmt.Println(err)
-      return ctx.InternalServerError(kornet.Msg("unable to catch user count", true))
+          if err != sql.ErrNoRows {
+
+            return ctx.InternalServerError(kornet.Msg("unable to catch user count", true))
+          }
+        }
+      }
     }
+
+    userRepo.SessionNew()
 
     prepared = userRepo.GORM().
       Select("COUNT(*) AS student").
@@ -2094,33 +2106,45 @@ func AdminController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
       Group("checkout.user_id")
     if err = prepared.Error; err != nil {
 
-      fmt.Println(err)
       return ctx.InternalServerError(kornet.Msg("unable to catch user count", true))
     }
 
-    row = prepared.Row()
-    if err = row.Scan(&data.Student); err != nil {
+    if prepared != nil {
+      if row = prepared.Row(); row != nil {
+        if err = row.Scan(&data.Student); err != nil {
 
-      fmt.Println(err)
-      return ctx.InternalServerError(kornet.Msg("unable to catch user count", true))
+          if err != sql.ErrNoRows {
+
+            return ctx.InternalServerError(kornet.Msg("unable to catch user count", true))
+          }
+        }
+      }
     }
 
     data.NewStudent = data.User - data.Student
+
+    courseRepo.SessionNew()
 
     prepared = courseRepo.GORM().
       Select("COUNT(*) AS course")
     if err = prepared.Error; err != nil {
 
-      fmt.Println(err)
       return ctx.InternalServerError(kornet.Msg("unable to catch course count", true))
     }
 
-    row = prepared.Row()
-    if err = row.Scan(&data.Course); err != nil {
+    if prepared != nil {
+      if row = prepared.Row(); row != nil {
+        if err = row.Scan(&data.Course); err != nil {
 
-      fmt.Println(err)
-      return ctx.InternalServerError(kornet.Msg("unable to catch course count", true))
+          if err != sql.ErrNoRows {
+
+            return ctx.InternalServerError(kornet.Msg("unable to catch course count", true))
+          }
+        }
+      }
     }
+
+    userRepo.SessionNew()
 
     prepared = userRepo.GORM().
       Select("COUNT(*) AS graduate").
@@ -2128,15 +2152,19 @@ func AdminController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
       Group("completion_courses.user_id")
     if err = prepared.Error; err != nil {
 
-      fmt.Println(err)
       return ctx.InternalServerError(kornet.Msg("unable to catch graduate count", true))
     }
 
-    row = prepared.Row()
-    if err = row.Scan(&data.Graduate); err != nil {
+    if prepared != nil {
+      if row = prepared.Row(); row != nil {
+        if err = row.Scan(&data.Graduate); err != nil {
 
-      fmt.Println(err)
-      return ctx.InternalServerError(kornet.Msg("unable to catch graduate count", true))
+          if err != sql.ErrNoRows {
+
+            return ctx.InternalServerError(kornet.Msg("unable to catch graduate count", true))
+          }
+        }
+      }
     }
 
     return ctx.OK(kornet.ResultNew(kornet.MessageNew("successful status information", false), data))
