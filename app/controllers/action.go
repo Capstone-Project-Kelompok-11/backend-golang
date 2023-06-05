@@ -101,8 +101,8 @@ func ActionController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
         "Authorization": "string",
       },
       "body": swag.JSON(&m.KMap{
-        "name":              "string",
-        "username":          "string",
+        "name": "string",
+        //"username":          "string",
         "gender":            "string",
         "phone":             "string",
         "dob":               "string",
@@ -135,7 +135,7 @@ func ActionController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
         }
 
         name := m.KValueToString(body.Get("name"))
-        username := m.KValueToString(body.Get("username"))
+        //username := m.KValueToString(body.Get("username"))
         gender := m.KValueToString(body.Get("gender"))
         phone := m.KValueToString(body.Get("phone"))
         dob := m.KValueToString(body.Get("dob"))
@@ -163,7 +163,7 @@ func ActionController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
           }
 
           user.Name = sql.NullString{String: name, Valid: true}
-          user.Username = username
+          //user.Username = username
           user.Gender = sql.NullString{String: gender, Valid: true}
           user.Phone = sql.NullString{String: phone, Valid: true}
           user.DOB = sql.NullTime{Time: dobT, Valid: true}
