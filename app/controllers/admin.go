@@ -2090,7 +2090,8 @@ func AdminController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
     prepared = userRepo.GORM().
       Select("COUNT(*) AS student").
       Where("admin = ?", false).
-      Joins("INNER JOIN checkout ON checkout.user_id = users.id")
+      Joins("INNER JOIN checkout ON checkout.user_id = users.id").
+      Group("checkout.user_id")
     if err = prepared.Error; err != nil {
 
       fmt.Println(err)
