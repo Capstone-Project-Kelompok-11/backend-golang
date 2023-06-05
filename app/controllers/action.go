@@ -1,372 +1,382 @@
 package controllers
 
 import (
-  "database/sql"
-  "encoding/json"
-  "lms/app/models"
-  "lms/app/repository"
-  util "lms/app/utils"
-  "net/url"
-  "skfw/papaya"
-  "skfw/papaya/bunny/swag"
-  "skfw/papaya/koala/kornet"
-  m "skfw/papaya/koala/mapping"
-  "skfw/papaya/koala/pp"
-  "skfw/papaya/koala/tools/posix"
-  mo "skfw/papaya/pigeon/templates/basicAuth/models"
-  bacx "skfw/papaya/pigeon/templates/basicAuth/util"
-  "time"
+	"database/sql"
+	"encoding/json"
+	"lms/app/models"
+	"lms/app/repository"
+	util "lms/app/utils"
+	"net/url"
+	"skfw/papaya"
+	"skfw/papaya/bunny/swag"
+	"skfw/papaya/koala/kornet"
+	m "skfw/papaya/koala/mapping"
+	"skfw/papaya/koala/pp"
+	"skfw/papaya/koala/tools/posix"
+	mo "skfw/papaya/pigeon/templates/basicAuth/models"
+	bacx "skfw/papaya/pigeon/templates/basicAuth/util"
+	"time"
 )
 
 func ActionController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
 
-  conn := pn.Connection()
-  DB := conn.GORM()
-
-  userRepo, _ := repository.UserRepositoryNew(DB)
-  completionCourseRepo, _ := repository.CompletionCourseRepositoryNew(DB)
-  courseRepo, _ := repository.CourseRepositoryNew(DB)
-
-  pp.Void(completionCourseRepo)
-  pp.Void(courseRepo)
-
-  router.Get("/info", &m.KMap{
-    "AuthToken":   true,
-    "description": "Catch User Information",
-    "request": m.KMap{
-      "headers": &m.KMap{
-        "Authorization": "string",
-      },
-    },
-    "responses": swag.OkJSON(&kornet.Result{
-      Data: &m.KMap{
-        "name":         "string",
-        "username":     "string",
-        "image":        "string",
-        "email":        "string",
-        "gender":       "string",
-        "phone":        "string",
-        "dob":          "string",
-        "address":      "string",
-        "country_code": "string",
-        "city":         "string",
-        "postal_code":  "string",
-        "verify":       "boolean",
-        "admin":        "boolean",
-        "balance":      "number",
-      },
-    }),
-  }, func(ctx *swag.SwagContext) error {
-
-    var err error
-    var user *models.Users
-
-    if ctx.Event() {
-
-      if userModel, ok := ctx.Target().(*mo.UserModel); ok {
-
-        // get full user information
-        if user, err = userRepo.Find("id = ?", userModel.ID); user != nil {
-
-          return ctx.OK(kornet.ResultNew(kornet.MessageNew("successful get user information", false), &m.KMap{
-            "name":         user.Name.String,
-            "username":     user.Username,
-            "image":        user.Image,
-            "email":        user.Email,
-            "gender":       user.Gender.String,
-            "phone":        user.Phone.String,
-            "dob":          user.DOB.Time,
-            "address":      user.Address.String,
-            "country_code": user.CountryCode.String,
-            "city":         user.City.String,
-            "postal_code":  user.PostalCode.String,
-            "verify":       user.Verify,
-            "admin":        user.Admin,
-            "balance":      user.Balance.BigInt(),
-          }))
-        }
-
-        return ctx.InternalServerError(kornet.Msg(err.Error(), true))
-      }
-    }
-
-    return ctx.InternalServerError(kornet.Msg("unable to get user information", true))
-  })
-
-  router.Post("/info", &m.KMap{
-    "AuthToken":   true,
-    "description": "Update User Information",
-    "request": &m.KMap{
-      "headers": &m.KMap{
-        "Authorization": "string",
-      },
-      "body": swag.JSON(&m.KMap{
-        "name":         "string",
-        "username":     "string",
-        "gender":       "string",
-        "phone":        "string",
-        "dob":          "string",
-        "address":      "string",
-        "country_code": "string",
-        "city":         "string",
-        "postal_code":  "string",
-      }),
-    },
-    "responses": swag.OkJSON(&kornet.Result{}),
-  }, func(ctx *swag.SwagContext) error {
-
-    var err error
-    var user *models.Users
-    var body m.KMapImpl
-    var dobT time.Time
-
-    if ctx.Event() {
+	conn := pn.Connection()
+	DB := conn.GORM()
+
+	userRepo, _ := repository.UserRepositoryNew(DB)
+	completionCourseRepo, _ := repository.CompletionCourseRepositoryNew(DB)
+	courseRepo, _ := repository.CourseRepositoryNew(DB)
+
+	pp.Void(completionCourseRepo)
+	pp.Void(courseRepo)
+
+	router.Get("/info", &m.KMap{
+		"AuthToken":   true,
+		"description": "Catch User Information",
+		"request": m.KMap{
+			"headers": &m.KMap{
+				"Authorization": "string",
+			},
+		},
+		"responses": swag.OkJSON(&kornet.Result{
+			Data: &m.KMap{
+				"name":         "string",
+				"username":     "string",
+				"image":        "string",
+				"email":        "string",
+				"gender":       "string",
+				"phone":        "string",
+				"dob":          "string",
+				"address":      "string",
+				"country_code": "string",
+				"city":         "string",
+				"postal_code":  "string",
+				"verify":       "boolean",
+				"admin":        "boolean",
+				"balance":      "number",
+			},
+		}),
+	}, func(ctx *swag.SwagContext) error {
+
+		var err error
+		var user *models.Users
+
+		if ctx.Event() {
+
+			if userModel, ok := ctx.Target().(*mo.UserModel); ok {
+
+				// get full user information
+				if user, err = userRepo.Find("id = ?", userModel.ID); user != nil {
+
+					return ctx.OK(kornet.ResultNew(kornet.MessageNew("successful get user information", false), &m.KMap{
+						"name":         user.Name.String,
+						"username":     user.Username,
+						"image":        user.Image,
+						"email":        user.Email,
+						"gender":       user.Gender.String,
+						"phone":        user.Phone.String,
+						"dob":          user.DOB.Time,
+						"address":      user.Address.String,
+						"country_code": user.CountryCode.String,
+						"city":         user.City.String,
+						"postal_code":  user.PostalCode.String,
+						"verify":       user.Verify,
+						"admin":        user.Admin,
+						"balance":      user.Balance.BigInt(),
+					}))
+				}
+
+				return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+			}
+		}
+
+		return ctx.InternalServerError(kornet.Msg("unable to get user information", true))
+	})
+
+	router.Post("/info", &m.KMap{
+		"AuthToken":   true,
+		"description": "Update User Information",
+		"request": &m.KMap{
+			"headers": &m.KMap{
+				"Authorization": "string",
+			},
+			"body": swag.JSON(&m.KMap{
+				"name":              "string",
+				"username":          "string",
+				"gender":            "string",
+				"phone":             "string",
+				"dob":               "string",
+				"address":           "string",
+				"country_code":      "string",
+				"city":              "string",
+				"postal_code":       "string",
+				"confirm_password?": "string",
+			}),
+		},
+		"responses": swag.OkJSON(&kornet.Result{}),
+	}, func(ctx *swag.SwagContext) error {
+
+		var err error
+		var user *models.Users
+		var body m.KMapImpl
+		var dobT time.Time
+
+		if ctx.Event() {
 
-      if userModel, ok := ctx.Target().(*mo.UserModel); ok {
+			if userModel, ok := ctx.Target().(*mo.UserModel); ok {
 
-        kReq, _ := ctx.Kornet()
+				kReq, _ := ctx.Kornet()
 
-        body = &m.KMap{}
+				body = &m.KMap{}
 
-        if err = json.Unmarshal(kReq.Body.ReadAll(), body); err != nil {
+				if err = json.Unmarshal(kReq.Body.ReadAll(), body); err != nil {
 
-          return ctx.InternalServerError(kornet.Msg("unable to parsing request body", true))
-        }
+					return ctx.InternalServerError(kornet.Msg("unable to parsing request body", true))
+				}
 
-        name := m.KValueToString(body.Get("name"))
-        username := m.KValueToString(body.Get("username"))
-        gender := m.KValueToString(body.Get("gender"))
-        phone := m.KValueToString(body.Get("phone"))
-        dob := m.KValueToString(body.Get("dob"))
-        address := m.KValueToString(body.Get("address"))
-        countryCode := m.KValueToString(body.Get("country_code"))
-        city := m.KValueToString(body.Get("city"))
-        postalCode := m.KValueToString(body.Get("postal_code"))
+				name := m.KValueToString(body.Get("name"))
+				username := m.KValueToString(body.Get("username"))
+				gender := m.KValueToString(body.Get("gender"))
+				phone := m.KValueToString(body.Get("phone"))
+				dob := m.KValueToString(body.Get("dob"))
+				address := m.KValueToString(body.Get("address"))
+				countryCode := m.KValueToString(body.Get("country_code"))
+				city := m.KValueToString(body.Get("city"))
+				postalCode := m.KValueToString(body.Get("postal_code"))
+				confirmPassword := m.KValueToString(body.Get("confirm_password"))
 
-        //time.Parsing
-        if dobT, err = time.Parse(time.RFC3339, dob); err != nil {
+				//time.Parsing
+				if dobT, err = time.Parse(time.RFC3339, dob); err != nil {
 
-          return ctx.BadRequest(kornet.Msg("unable to parse date of birthday", true))
-        }
+					return ctx.BadRequest(kornet.Msg("unable to parse date of birthday", true))
+				}
 
-        // get full user information
-        if user, err = userRepo.Find("id = ?", userModel.ID); user != nil {
+				// get full user information
+				if user, err = userRepo.Find("id = ?", userModel.ID); user != nil {
 
-          user.Name = sql.NullString{String: name, Valid: true}
-          user.Username = username
-          user.Gender = sql.NullString{String: gender, Valid: true}
-          user.Phone = sql.NullString{String: phone, Valid: true}
-          user.DOB = sql.NullTime{Time: dobT, Valid: true}
-          user.Address = sql.NullString{String: address, Valid: true}
-          user.CountryCode = sql.NullString{String: countryCode, Valid: true}
-          user.City = sql.NullString{String: city, Valid: true}
-          user.PostalCode = sql.NullString{String: postalCode, Valid: true}
+					if confirmPassword != "" {
 
-          if err = userRepo.Update(user, "id = ?", user.ID); err != nil {
+						if !bacx.CheckPasswordHash(confirmPassword, user.Password) {
 
-            return ctx.InternalServerError(kornet.Msg(err.Error(), true))
-          }
+							return ctx.BadRequest(kornet.Msg("confirm password does not match", true))
+						}
+					}
 
-          return ctx.OK(kornet.Msg("successful update user information", false))
-        }
+					user.Name = sql.NullString{String: name, Valid: true}
+					user.Username = username
+					user.Gender = sql.NullString{String: gender, Valid: true}
+					user.Phone = sql.NullString{String: phone, Valid: true}
+					user.DOB = sql.NullTime{Time: dobT, Valid: true}
+					user.Address = sql.NullString{String: address, Valid: true}
+					user.CountryCode = sql.NullString{String: countryCode, Valid: true}
+					user.City = sql.NullString{String: city, Valid: true}
+					user.PostalCode = sql.NullString{String: postalCode, Valid: true}
 
-        return ctx.InternalServerError(kornet.Msg(err.Error(), true))
-      }
-    }
+					if err = userRepo.Update(user, "id = ?", user.ID); err != nil {
 
-    return ctx.InternalServerError(kornet.Msg("unable to get user information", true))
-  })
+						return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+					}
 
-  router.Post("/change/password", &m.KMap{
-    "AuthToken":   true,
-    "description": "Change User Password",
-    "request": &m.KMap{
-      "headers": &m.KMap{
-        "Authorization": "string",
-      },
-      "body": swag.JSON(&m.KMap{
-        "password": "string",
-      }),
-    },
-    "responses": swag.OkJSON(&kornet.Result{}),
-  }, func(ctx *swag.SwagContext) error {
+					return ctx.OK(kornet.Msg("successful update user information", false))
+				}
 
-    var err error
-    var pass string
-    var user *models.Users
-    var body m.KMapImpl
+				return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+			}
+		}
 
-    if ctx.Event() {
+		return ctx.InternalServerError(kornet.Msg("unable to get user information", true))
+	})
 
-      if userModel, ok := ctx.Target().(*mo.UserModel); ok {
+	router.Post("/change/password", &m.KMap{
+		"AuthToken":   true,
+		"description": "Change User Password",
+		"request": &m.KMap{
+			"headers": &m.KMap{
+				"Authorization": "string",
+			},
+			"body": swag.JSON(&m.KMap{
+				"password": "string",
+			}),
+		},
+		"responses": swag.OkJSON(&kornet.Result{}),
+	}, func(ctx *swag.SwagContext) error {
 
-        kReq, _ := ctx.Kornet()
+		var err error
+		var pass string
+		var user *models.Users
+		var body m.KMapImpl
 
-        body = &m.KMap{}
+		if ctx.Event() {
 
-        if err = json.Unmarshal(kReq.Body.ReadAll(), body); err != nil {
+			if userModel, ok := ctx.Target().(*mo.UserModel); ok {
 
-          return ctx.InternalServerError(kornet.Msg("unable to parsing request body", true))
-        }
+				kReq, _ := ctx.Kornet()
 
-        password := m.KValueToString(body.Get("password"))
+				body = &m.KMap{}
 
-        // get full user information
-        if user, err = userRepo.Find("id = ?", userModel.ID); user != nil {
+				if err = json.Unmarshal(kReq.Body.ReadAll(), body); err != nil {
 
-          if pass, err = bacx.HashPassword(password); err != nil {
+					return ctx.InternalServerError(kornet.Msg("unable to parsing request body", true))
+				}
 
-            return ctx.InternalServerError(kornet.Msg(err.Error(), true))
-          }
+				password := m.KValueToString(body.Get("password"))
 
-          user.Password = pass
+				// get full user information
+				if user, err = userRepo.Find("id = ?", userModel.ID); user != nil {
 
-          if err = userRepo.Update(user, "id = ?", user.ID); err != nil {
+					if pass, err = bacx.HashPassword(password); err != nil {
 
-            return ctx.InternalServerError(kornet.Msg(err.Error(), true))
-          }
+						return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+					}
 
-          return ctx.OK(kornet.Msg("successful change user password", false))
-        }
+					user.Password = pass
 
-        return ctx.InternalServerError(kornet.Msg(err.Error(), true))
-      }
+					if err = userRepo.Update(user, "id = ?", user.ID); err != nil {
 
-    }
+						return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+					}
 
-    return ctx.InternalServerError(kornet.Msg("unable to get user information", true))
+					return ctx.OK(kornet.Msg("successful change user password", false))
+				}
 
-  })
+				return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+			}
 
-  router.Post("/profile/image/upload", &m.KMap{
-    "AuthToken":   true,
-    "description": "Upload User Profile Image",
-    "request": m.KMap{
-      "headers": &m.KMap{
-        "Authorization": "string",
-      },
-    },
-    "responses": swag.OkJSON(&kornet.Message{}),
-  }, func(ctx *swag.SwagContext) error {
+		}
 
-    var err error
+		return ctx.InternalServerError(kornet.Msg("unable to get user information", true))
 
-    if ctx.Event() {
+	})
 
-      if user, ok := ctx.Target().(*mo.UserModel); ok {
+	router.Post("/profile/image/upload", &m.KMap{
+		"AuthToken":   true,
+		"description": "Upload User Profile Image",
+		"request": m.KMap{
+			"headers": &m.KMap{
+				"Authorization": "string",
+			},
+		},
+		"responses": swag.OkJSON(&kornet.Message{}),
+	}, func(ctx *swag.SwagContext) error {
 
-        pp.Void(user)
+		var err error
 
-        if check, _ := userRepo.Find("id = ?", user.ID); check != nil {
+		if ctx.Event() {
 
-          if check.Image == "" {
+			if user, ok := ctx.Target().(*mo.UserModel); ok {
 
-            check.Image, _ = util.GenUniqFileNameOutput("assets/public/images", "profile.png")
+				pp.Void(user)
 
-            if err = userRepo.Update(check, "id = ?", check.ID); err != nil {
+				if check, _ := userRepo.Find("id = ?", user.ID); check != nil {
 
-              return ctx.InternalServerError(kornet.Msg(err.Error(), true))
-            }
-          }
+					if check.Image == "" {
 
-          return util.SwagSaveImageX256(ctx, check.Image, nil)
-        }
+						check.Image, _ = util.GenUniqFileNameOutput("assets/public/images", "profile.png")
 
-        return ctx.BadRequest(kornet.Msg("unable to get user information", true))
-      }
-    }
+						if err = userRepo.Update(check, "id = ?", check.ID); err != nil {
 
-    return ctx.InternalServerError(kornet.Msg("unable to get user information", true))
-  })
+							return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+						}
+					}
 
-  router.Get("/course/certificate", &m.KMap{
-    "AuthToken":   true,
-    "description": "User Course Certificate",
-    "request": &m.KMap{
-      "params": &m.KMap{
-        "id": "string", // course id
-      },
-      "headers": &m.KMap{
-        "Authorization": "string",
-      },
-    },
-    "responses": swag.OkJSON(&kornet.Message{}),
-  }, func(ctx *swag.SwagContext) error {
+					return util.SwagSaveImageX256(ctx, check.Image, nil)
+				}
 
-    var err error
+				return ctx.BadRequest(kornet.Msg("unable to get user information", true))
+			}
+		}
 
-    pp.Void(err)
+		return ctx.InternalServerError(kornet.Msg("unable to get user information", true))
+	})
 
-    if ctx.Event() {
+	router.Get("/course/certificate", &m.KMap{
+		"AuthToken":   true,
+		"description": "User Course Certificate",
+		"request": &m.KMap{
+			"params": &m.KMap{
+				"id": "string", // course id
+			},
+			"headers": &m.KMap{
+				"Authorization": "string",
+			},
+		},
+		"responses": swag.OkJSON(&kornet.Message{}),
+	}, func(ctx *swag.SwagContext) error {
 
-      if userModel, ok := ctx.Target().(*mo.UserModel); ok {
+		var err error
 
-        pp.Void(userModel)
+		pp.Void(err)
 
-        kReq, _ := ctx.Kornet()
+		if ctx.Event() {
 
-        courseId := m.KValueToString(kReq.Query.Get("id"))
+			if userModel, ok := ctx.Target().(*mo.UserModel); ok {
 
-        var completionCourse *models.CompletionCourses
-        var course *models.Courses
+				pp.Void(userModel)
 
-        if course, err = courseRepo.Find("id = ?", courseId); err != nil {
+				kReq, _ := ctx.Kornet()
 
-          return ctx.InternalServerError(kornet.Msg("unable to get course information", true))
-        }
+				courseId := m.KValueToString(kReq.Query.Get("id"))
 
-        if completionCourse, err = completionCourseRepo.Find("user_id = ? AND course_id = ?", userModel.ID, courseId); err != nil {
+				var completionCourse *models.CompletionCourses
+				var course *models.Courses
 
-          return ctx.BadRequest(kornet.Msg("you doesn't completion this course", true))
-        }
+				if course, err = courseRepo.Find("id = ?", courseId); err != nil {
 
-        var URL *url.URL
+					return ctx.InternalServerError(kornet.Msg("unable to get course information", true))
+				}
 
-        if URL, err = url.Parse(ctx.BaseURL()); err != nil {
+				if completionCourse, err = completionCourseRepo.Find("user_id = ? AND course_id = ?", userModel.ID, courseId); err != nil {
 
-          return ctx.InternalServerError(kornet.Msg("unable to parse base url", true))
-        }
+					return ctx.BadRequest(kornet.Msg("you doesn't completion this course", true))
+				}
 
-        URL.Path = "/api/v1/public/cert"
-        URL.RawPath = "/api/v1/public/cert"
+				var URL *url.URL
 
-        docURL := posix.KPathNew(URL.String())
+				if URL, err = url.Parse(ctx.BaseURL()); err != nil {
 
-        if completionCourse.Certificate != "" {
+					return ctx.InternalServerError(kornet.Msg("unable to parse base url", true))
+				}
 
-          return ctx.OK(kornet.ResultNew(kornet.MessageNew("certificate already exist", false), &m.KMap{
+				URL.Path = "/api/v1/public/cert"
+				URL.RawPath = "/api/v1/public/cert"
 
-            "certificate": completionCourse.Certificate,
-            "image":       docURL.Copy().JoinStr(completionCourse.Certificate + ".jpg"),
-            "url":         docURL.Copy().JoinStr(completionCourse.Certificate + ".pdf"),
-          }))
-        }
+				docURL := posix.KPathNew(URL.String())
 
-        var certName string
+				if completionCourse.Certificate != "" {
 
-        if certName, err = util.GenerateCertificateInCaches(course.Name, pp.Qstr(userModel.Name.String, userModel.Username)); err != nil {
+					return ctx.OK(kornet.ResultNew(kornet.MessageNew("certificate already exist", false), &m.KMap{
 
-          return ctx.InternalServerError(kornet.Msg(err.Error(), true))
-        }
+						"certificate": completionCourse.Certificate,
+						"image":       docURL.Copy().JoinStr(completionCourse.Certificate + ".jpg"),
+						"url":         docURL.Copy().JoinStr(completionCourse.Certificate + ".pdf"),
+					}))
+				}
 
-        certName = posix.KPathNew(certName).BaseStr()
+				var certName string
 
-        completionCourse.Certificate = certName
+				if certName, err = util.GenerateCertificateInCaches(course.Name, pp.Qstr(userModel.Name.String, userModel.Username)); err != nil {
 
-        if err = completionCourseRepo.Update(completionCourse, "id = ?", completionCourse.ID); err != nil {
+					return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+				}
 
-          return ctx.InternalServerError(kornet.Msg(err.Error(), true))
-        }
+				certName = posix.KPathNew(certName).BaseStr()
 
-        return ctx.OK(kornet.ResultNew(kornet.MessageNew("create certificate", false), &m.KMap{
+				completionCourse.Certificate = certName
 
-          "certificate": completionCourse.Certificate,
-          "image":       docURL.Copy().JoinStr(completionCourse.Certificate + ".jpg"),
-          "url":         docURL.Copy().JoinStr(completionCourse.Certificate + ".pdf"),
-        }))
-      }
-    }
+				if err = completionCourseRepo.Update(completionCourse, "id = ?", completionCourse.ID); err != nil {
 
-    return ctx.InternalServerError(kornet.Msg("unable to get user information", true))
-  })
+					return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+				}
+
+				return ctx.OK(kornet.ResultNew(kornet.MessageNew("create certificate", false), &m.KMap{
+
+					"certificate": completionCourse.Certificate,
+					"image":       docURL.Copy().JoinStr(completionCourse.Certificate + ".jpg"),
+					"url":         docURL.Copy().JoinStr(completionCourse.Certificate + ".pdf"),
+				}))
+			}
+		}
+
+		return ctx.InternalServerError(kornet.Msg("unable to get user information", true))
+	})
 }
