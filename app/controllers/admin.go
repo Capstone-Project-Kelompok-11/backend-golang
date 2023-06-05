@@ -2048,4 +2048,96 @@ func AdminController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
 
     return ctx.OK(kornet.ResultNew(kornet.MessageNew("successful get who courses enrolled", false), data))
   })
+
+  type Stat struct {
+    User       int64 `json:"user"`
+    NewStudent int64 `json:"new_student"`
+    Student    int64 `json:"student"`
+    Course     int64 `json:"course"`
+    Graduate   int64 `json:"graduate"`
+  }
+
+  router.Get("/stats", &m.KMap{
+    "AuthToken":   true,
+    "Admin":       true,
+    "description": "Status Information",
+    "request":     nil,
+    "responses": swag.OkJSON(&kornet.Result{
+      Data: Stat{},
+    }),
+  }, func(ctx *swag.SwagContext) error {
+
+    var err error
+
+    data := Stat{}
+
+    prepared := userRepo.GORM().
+      Select("COUNT(*) AS user").
+      Where("admin = ?", false)
+    if err = prepared.Error; err != nil {
+
+      fmt.Println(err)
+      return ctx.InternalServerError(kornet.Msg("unable to catch user count", true))
+    }
+
+    row := prepared.Row()
+    if err = row.Scan(&data.User); err != nil {
+
+      fmt.Println(err)
+      return ctx.InternalServerError(kornet.Msg("unable to catch user count", true))
+    }
+
+    prepared = userRepo.GORM().
+      Select("COUNT(*) AS student").
+      Where("admin = ?", false).
+      Joins("INNER JOIN checkout ON checkout.user_id = users.id")
+    if err = prepared.Error; err != nil {
+
+      fmt.Println(err)
+      return ctx.InternalServerError(kornet.Msg("unable to catch user count", true))
+    }
+
+    row = prepared.Row()
+    if err = row.Scan(&data.Student); err != nil {
+
+      fmt.Println(err)
+      return ctx.InternalServerError(kornet.Msg("unable to catch user count", true))
+    }
+
+    data.NewStudent = data.User - data.Student
+
+    prepared = courseRepo.GORM().
+      Select("COUNT(*) AS course")
+    if err = prepared.Error; err != nil {
+
+      fmt.Println(err)
+      return ctx.InternalServerError(kornet.Msg("unable to catch course count", true))
+    }
+
+    row = prepared.Row()
+    if err = row.Scan(&data.Course); err != nil {
+
+      fmt.Println(err)
+      return ctx.InternalServerError(kornet.Msg("unable to catch course count", true))
+    }
+
+    prepared = userRepo.GORM().
+      Select("COUNT(*) AS graduate").
+      Joins("INNER JOIN completion_courses ON completion_courses.user_id = users.id").
+      Group("completion_courses.user_id")
+    if err = prepared.Error; err != nil {
+
+      fmt.Println(err)
+      return ctx.InternalServerError(kornet.Msg("unable to catch graduate count", true))
+    }
+
+    row = prepared.Row()
+    if err = row.Scan(&data.Graduate); err != nil {
+
+      fmt.Println(err)
+      return ctx.InternalServerError(kornet.Msg("unable to catch graduate count", true))
+    }
+
+    return ctx.OK(kornet.ResultNew(kornet.MessageNew("successful status information", false), data))
+  })
 }
