@@ -2,6 +2,7 @@ package util
 
 import (
   "bytes"
+  "errors"
   "fmt"
   "github.com/gofiber/fiber/v2"
   "golang.org/x/image/draw"
@@ -103,7 +104,7 @@ func SafeParseSearchAndSortOrder(search string, sort string) (string, string, er
 
   if search, err = url.QueryUnescape(search); err != nil {
 
-    return search, sort, err
+    return search, sort, errors.New("invalid search")
   }
 
   search = "%" + strings.ReplaceAll(search, " ", "%") + "%"

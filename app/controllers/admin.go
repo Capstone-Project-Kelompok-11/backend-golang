@@ -2,6 +2,7 @@ package controllers
 
 import (
   "encoding/json"
+  "fmt"
   "github.com/shopspring/decimal"
   "lms/app/models"
   "lms/app/repository"
@@ -1961,5 +1962,90 @@ func AdminController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
     }
 
     return ctx.OK(kornet.ResultNew(kornet.MessageNew("successful grade course resume", false), assign))
+  })
+
+  router.Get("/who/courses/enrolled", &m.KMap{
+    "AuthToken":   true,
+    "Admin":       true,
+    "description": "Catch All Who Courses enrolled",
+    "request": &m.KMap{
+      "params": &m.KMap{
+        "size":    "number",
+        "page":    "number",
+        "search?": "string",
+        "sort?":   "string",
+      },
+    },
+    "responses": swag.OkJSON(&kornet.Result{
+      Data: make([]m.KMapImpl, 0),
+    }),
+  }, func(ctx *swag.SwagContext) error {
+
+    var err error
+
+    kReq, _ := ctx.Kornet()
+
+    size := util.ValueToInt(kReq.Query.Get("size"))
+    page := util.ValueToInt(kReq.Query.Get("page"))
+    search := m.KValueToString(kReq.Query.Get("search"))
+    sort := m.KValueToString(kReq.Query.Get("sort"))
+
+    if search, sort, err = util.SafeParseSearchAndSortOrder(search, sort); err != nil {
+
+      return ctx.BadRequest(kornet.Msg(err.Error(), true))
+    }
+
+    var courses []models.Courses
+
+    if search != "%%" {
+
+      if courses, err = courseRepo.FindAllAndOrder(size, page, fmt.Sprintf("name %s", sort), "LIKE ?", search); err != nil {
+
+        return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+      }
+
+    } else {
+
+      if courses, err = courseRepo.CatchAll(size, page); err != nil {
+
+        return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+      }
+    }
+
+    data := make([]m.KMapImpl, 0)
+
+    for _, course := range courses {
+
+      var checkouts []models.Checkout
+
+      exposed := make([]m.KMapImpl, 0)
+
+      if checkouts, err = checkoutRepo.FindAll(-1, -1, "course_id = ?", course.ID); err != nil {
+
+        pp.Void(err)
+      }
+
+      for _, checkout := range checkouts {
+
+        if user, _ := userRepo.Find("id = ?", checkout.UserID); user != nil {
+
+          exposed = append(exposed, &m.KMap{
+            "name":     user.Name.String,
+            "username": user.Username,
+            "image":    user.Image,
+            "email":    user.Email,
+            "phone":    user.Phone.String,
+          })
+        }
+      }
+
+      data = append(data, &m.KMap{
+        "id":    course.ID,
+        "name":  course.Name,
+        "users": exposed,
+      })
+    }
+
+    return ctx.OK(kornet.ResultNew(kornet.MessageNew("successful get who courses enrolled", false), data))
   })
 }

@@ -182,12 +182,12 @@ func AnonymController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
     // TODO
     pp.Void(category)
 
-    if search != "" {
+    if search, sort, err = util.SafeParseSearchAndSortOrder(search, sort); err != nil {
 
-      if search, sort, err = util.SafeParseSearchAndSortOrder(search, sort); err != nil {
+      return ctx.BadRequest(kornet.Msg(err.Error(), true))
+    }
 
-        return ctx.BadRequest(kornet.Msg("unable to parse search", true))
-      }
+    if search != "%%" {
 
       if data, err = courseRepo.FindAllAndOrder(size, page, "name "+sort, "name LIKE ?", search); err != nil {
 
