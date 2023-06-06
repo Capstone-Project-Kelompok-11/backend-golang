@@ -1,11 +1,9 @@
 package controllers
 
 import (
-  "database/sql"
   "encoding/json"
   "fmt"
   "github.com/shopspring/decimal"
-  "gorm.io/gorm"
   "lms/app/models"
   "lms/app/repository"
   util "lms/app/utils"
@@ -2070,101 +2068,32 @@ func AdminController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
   }, func(ctx *swag.SwagContext) error {
 
     var err error
-    var prepared *gorm.DB
-    var row *sql.Row
 
     data := Stat{}
 
-    userRepo.SessionNew()
+    if err = userRepo.CountUser(&data.User); err != nil {
 
-    prepared = userRepo.GORM().
-      Select("COUNT(*) AS user").
-      Where("admin = ?", false)
-    if err = prepared.Error; err != nil {
-
-      return ctx.InternalServerError(kornet.Msg("unable to catch user count", true))
+      return ctx.InternalServerError(kornet.Msg(err.Error(), true))
     }
 
-    if prepared != nil {
-      if row = prepared.Row(); row != nil {
-        if err = row.Scan(&data.User); err != nil {
+    if err = userRepo.CountStudent(&data.Student); err != nil {
 
-          if err != sql.ErrNoRows {
-
-            return ctx.InternalServerError(kornet.Msg("unable to catch user count", true))
-          }
-        }
-      }
+      return ctx.InternalServerError(kornet.Msg(err.Error(), true))
     }
 
-    userRepo.SessionNew()
+    if err = userRepo.CountNewStudent(&data.NewStudent); err != nil {
 
-    prepared = userRepo.GORM().
-      Select("COUNT(*) AS student").
-      Where("admin = ?", false).
-      Joins("INNER JOIN checkout ON checkout.user_id = users.id").
-      Group("checkout.user_id")
-    if err = prepared.Error; err != nil {
-
-      return ctx.InternalServerError(kornet.Msg("unable to catch user count", true))
+      return ctx.InternalServerError(kornet.Msg(err.Error(), true))
     }
 
-    if prepared != nil {
-      if row = prepared.Row(); row != nil {
-        if err = row.Scan(&data.Student); err != nil {
+    if err = userRepo.CountGraduate(&data.Graduate); err != nil {
 
-          if err != sql.ErrNoRows {
-
-            return ctx.InternalServerError(kornet.Msg("unable to catch user count", true))
-          }
-        }
-      }
+      return ctx.InternalServerError(kornet.Msg(err.Error(), true))
     }
 
-    data.NewStudent = data.User - data.Student
+    if err = courseRepo.CountCourse(&data.Course); err != nil {
 
-    courseRepo.SessionNew()
-
-    prepared = courseRepo.GORM().
-      Select("COUNT(*) AS course")
-    if err = prepared.Error; err != nil {
-
-      return ctx.InternalServerError(kornet.Msg("unable to catch course count", true))
-    }
-
-    if prepared != nil {
-      if row = prepared.Row(); row != nil {
-        if err = row.Scan(&data.Course); err != nil {
-
-          if err != sql.ErrNoRows {
-
-            return ctx.InternalServerError(kornet.Msg("unable to catch course count", true))
-          }
-        }
-      }
-    }
-
-    userRepo.SessionNew()
-
-    prepared = userRepo.GORM().
-      Select("COUNT(*) AS graduate").
-      Joins("INNER JOIN completion_courses ON completion_courses.user_id = users.id").
-      Group("completion_courses.user_id")
-    if err = prepared.Error; err != nil {
-
-      return ctx.InternalServerError(kornet.Msg("unable to catch graduate count", true))
-    }
-
-    if prepared != nil {
-      if row = prepared.Row(); row != nil {
-        if err = row.Scan(&data.Graduate); err != nil {
-
-          if err != sql.ErrNoRows {
-
-            return ctx.InternalServerError(kornet.Msg("unable to catch graduate count", true))
-          }
-        }
-      }
+      return ctx.InternalServerError(kornet.Msg(err.Error(), true))
     }
 
     return ctx.OK(kornet.ResultNew(kornet.MessageNew("successful status information", false), data))

@@ -19,8 +19,7 @@ func App(pn papaya.NetImpl) error {
 
   ManageControlResourceShared(pn)
 
-  logger := middleware.MakeLoggerMiddleware(pn)
-  pn.Use(logger)
+  pn.Use(middleware.MakeLoggerMiddleware(pn))
 
   swagger := pn.MakeSwagger(&swag.SwagInfo{
     Title:       "Academy API",

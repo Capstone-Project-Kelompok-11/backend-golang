@@ -1,6 +1,7 @@
 package repository
 
 import (
+  "database/sql"
   "errors"
   "fmt"
   "gorm.io/gorm"
@@ -20,6 +21,7 @@ type CourseRepositoryImpl interface {
   UpdateMemberCountById(id string) error
   PreFindByCheckUserAndCourseId(userId string, courseId string) (*models.Courses, error)
   PreCatchAll(size int, page int) ([]models.Courses, error)
+  CountCourse(courseCount *int64) error
 }
 
 func CourseRepositoryNew(DB *gorm.DB) (CourseRepositoryImpl, error) {
@@ -260,4 +262,37 @@ func (c *CourseRepository) UpdateMemberCountById(id string) error {
   }
 
   return nil
+}
+
+func (c *CourseRepository) CountCourse(courseCount *int64) error {
+
+  var err error
+  var prepared *gorm.DB
+  var row *sql.Row
+
+  c.SessionNew()
+
+  prepared = c.GORM().
+    Select("COUNT(*) AS course")
+  if err = prepared.Error; err != nil {
+
+    return errors.New("unable to catch course count")
+  }
+
+  if prepared != nil {
+    if row = prepared.Row(); row != nil {
+      if err = row.Scan(courseCount); err != nil {
+
+        if err != sql.ErrNoRows {
+
+          return errors.New("unable to catch course count")
+        }
+        *courseCount = 0
+      }
+
+      return nil
+    }
+  }
+
+  return errors.New("unable to catch course count")
 }

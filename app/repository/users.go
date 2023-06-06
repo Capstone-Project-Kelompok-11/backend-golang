@@ -1,10 +1,13 @@
 package repository
 
 import (
+  "database/sql"
   "errors"
+  "fmt"
   "gorm.io/gorm"
   "lms/app/models"
   "skfw/papaya/pigeon/easy"
+  "time"
 )
 
 type UserRepository struct {
@@ -16,6 +19,10 @@ type UserRepositoryImpl interface {
   CatchAllCheckoutVerified(query any, args ...any) ([]models.Checkout, error)
   CatchAllCheckoutNonVerified(query any, args ...any) ([]models.Checkout, error)
   CatchAllCheckoutCancelled(query any, args ...any) ([]models.Checkout, error)
+  CountUser(userCount *int64) error
+  CountStudent(studentCount *int64) error
+  CountNewStudent(newStudentCount *int64) error
+  CountGraduate(graduateCount *int64) error
 }
 
 func UserRepositoryNew(DB *gorm.DB) (UserRepositoryImpl, error) {
@@ -157,4 +164,156 @@ func (u *UserRepository) CatchAllCheckoutCancelled(query any, args ...any) ([]mo
 func (u *UserRepository) GORM() *gorm.DB {
 
   return u.Repository.GORM()
+}
+
+func (u *UserRepository) CountUser(userCount *int64) error {
+
+  var err error
+  var prepared *gorm.DB
+  var row *sql.Row
+
+  u.SessionNew()
+
+  prepared = u.GORM().
+    Select("COUNT(*) AS user").
+    Where("admin = ?", false)
+  if err = prepared.Error; err != nil {
+
+    return errors.New("unable to catch user count")
+  }
+
+  if prepared != nil {
+    if row = prepared.Row(); row != nil {
+      if err = row.Scan(userCount); err != nil {
+
+        if err != sql.ErrNoRows {
+
+          return errors.New("unable to catch user count")
+        }
+        *userCount = 0
+
+      }
+
+      return nil
+    }
+  }
+
+  return errors.New("unable to catch user count")
+}
+
+func (u *UserRepository) CountStudent(studentCount *int64) error {
+
+  var err error
+  var prepared *gorm.DB
+  var row *sql.Row
+
+  u.SessionNew()
+
+  prepared = u.GORM().
+    Select("COUNT(*) AS student").
+    Where("admin = ?", false).
+    Joins("INNER JOIN checkout ON checkout.user_id = users.id").
+    Group("checkout.user_id")
+  if err = prepared.Error; err != nil {
+
+    return errors.New("unable to catch user count")
+  }
+
+  if prepared != nil {
+    if row = prepared.Row(); row != nil {
+      if err = row.Scan(studentCount); err != nil {
+
+        if err != sql.ErrNoRows {
+
+          return errors.New("unable to catch user count")
+        }
+        *studentCount = 0
+
+      }
+
+      return nil
+    }
+  }
+
+  return errors.New("unable to catch student count")
+}
+
+func (u *UserRepository) CountNewStudent(newStudentCount *int64) error {
+
+  var err error
+  var prepared *gorm.DB
+  var row *sql.Row
+
+  u.SessionNew()
+
+  currentTime := time.Now().UTC()
+
+  beforeTime := currentTime
+  afterTime := beforeTime.AddDate(0, 0, -7) // 1 week ago
+
+  prepared = u.GORM().
+    Select("COUNT(*) AS student").
+    Where("admin = ?", false).
+    Where("users.created_at BETWEEN ? AND ?", afterTime, beforeTime).
+    Joins("INNER JOIN checkout ON checkout.user_id = users.id").
+    Group("checkout.user_id")
+  if err = prepared.Error; err != nil {
+
+    return errors.New("unable to catch user count")
+  }
+
+  if prepared != nil {
+    if row = prepared.Row(); row != nil {
+      if err = row.Scan(newStudentCount); err != nil {
+
+        if err != sql.ErrNoRows {
+
+          return errors.New("unable to catch user count")
+        }
+        *newStudentCount = 0
+
+      }
+
+      return nil
+    }
+  }
+
+  return errors.New("unable to catch new student count")
+}
+
+func (u *UserRepository) CountGraduate(graduateCount *int64) error {
+
+  var err error
+  var prepared *gorm.DB
+  var row *sql.Row
+
+  u.SessionNew()
+
+  prepared = u.GORM().
+    Select("COUNT(*) AS graduate").
+    Joins("INNER JOIN completion_courses ON completion_courses.user_id = users.id").
+    Group("completion_courses.user_id")
+  if err = prepared.Error; err != nil {
+
+    fmt.Println(err)
+
+    return errors.New("unable to catch graduate count")
+  }
+
+  if prepared != nil {
+    if row = prepared.Row(); row != nil {
+      if err = row.Scan(graduateCount); err != nil {
+
+        if err != sql.ErrNoRows {
+
+          return errors.New("unable to catch graduate count")
+        }
+        *graduateCount = 0
+
+      }
+      return nil
+    }
+  }
+
+  return errors.New("unable to catch graduate count")
 }
