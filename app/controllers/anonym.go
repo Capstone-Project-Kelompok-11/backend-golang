@@ -11,6 +11,7 @@ import (
   m "skfw/papaya/koala/mapping"
   "skfw/papaya/koala/pp"
   "skfw/papaya/koala/tools/posix"
+  "strings"
 )
 
 func AnonymController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
@@ -179,8 +180,22 @@ func AnonymController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
     sort := m.KValueToString(kReq.Query.Get("sort"))
     category := m.KValueToString(kReq.Query.Get("category"))
 
-    // TODO
-    pp.Void(category)
+    category = strings.TrimSpace(category)
+    var categories []string
+
+    if category != "" {
+
+      categories = strings.Split(category, ",")
+
+    } else {
+
+      categories = []string{"all"}
+    }
+
+    for i, context := range categories {
+
+      categories[i] = strings.TrimSpace(context)
+    }
 
     if search, sort, err = util.SafeParseSearchAndSortOrder(search, sort); err != nil {
 
@@ -203,27 +218,59 @@ func AnonymController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
     }
 
     exposed := util.CourseDataCollective(data)
+    reduced := make([]m.KMapImpl, 0)
 
     for _, course := range exposed {
 
-      categories := make([]string, 0)
+      categoriesCourse := make([]string, 0)
 
-      if categoryModels, ok := course.Get("category_courses").([]models.CategoryCourses); ok {
+      if categoryCourseModels, ok := course.Get("category_courses").([]models.CategoryCourses); ok {
 
-        for _, categoryModel := range categoryModels {
+        for _, categoryCourseModel := range categoryCourseModels {
 
-          if category, _ := categoryRepo.Find("id", categoryModel.CategoryID); category != nil {
+          if categoryModel, _ := categoryRepo.Find("id", categoryCourseModel.CategoryID); categoryModel != nil {
 
-            categories = append(categories, category.Name)
+            categoriesCourse = append(categoriesCourse, categoryModel.Name)
           }
         }
       }
 
-      course.Put("categories", categories)
+      course.Put("categories", categoriesCourse)
       course.Del("category_courses")
+
+      categoryIncluded := true             // always true, maybe category comma separator is empty
+      for _, context := range categories { // can handle none if category comma separator is empty
+
+        if context == "all" {
+
+          categoryIncluded = true
+          break
+        }
+
+        found := false
+        for _, categoryCourse := range categoriesCourse {
+
+          if categoryCourse == context {
+
+            found = true
+            break
+          }
+        }
+
+        if !found {
+
+          categoryIncluded = false
+          break
+        }
+      }
+
+      if categoryIncluded {
+
+        reduced = append(reduced, course)
+      }
     }
 
-    return ctx.OK(kornet.ResultNew(kornet.MessageNew("catch all courses", false), exposed))
+    return ctx.OK(kornet.ResultNew(kornet.MessageNew("catch all courses", false), reduced))
   })
 
   router.Get("/cert/:src", &m.KMap{
@@ -343,5 +390,52 @@ func AnonymController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
     }
 
     return ctx.OK(kornet.ResultNew(kornet.MessageNew("catch all reviews", false), exposed))
+  })
+
+  router.Get("/categories", &m.KMap{
+    "description": "Get Public Categories",
+    "request": &m.KMap{
+      "params": &m.KMap{
+        "page?": "number",
+        "size?": "number",
+      },
+    },
+    "responses": swag.OkJSON(&kornet.Result{
+      Data: []string{},
+    }),
+  }, func(ctx *swag.SwagContext) error {
+
+    var err error
+    kReq, _ := ctx.Kornet()
+
+    size := util.ValueToInt(kReq.Query.Get("size"))
+    page := util.ValueToInt(kReq.Query.Get("page"))
+
+    // catch all data
+    if page == 0 {
+      page = -1
+    }
+
+    // catch all data
+    if size == 0 {
+      size = -1
+    }
+
+    var categories []models.Categories
+
+    if categories, err = categoryRepo.CatchAll(size, page); err != nil {
+
+      return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+    }
+
+    data := make([]string, len(categories))
+
+    for i, category := range categories {
+
+      data[i] = category.Name
+    }
+
+    return ctx.OK(kornet.ResultNew(kornet.MessageNew("catch all categories", false), data))
+
   })
 }

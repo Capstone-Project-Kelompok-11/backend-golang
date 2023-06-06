@@ -16,6 +16,7 @@ import (
   "skfw/papaya/koala/tools/posix"
   "skfw/papaya/pigeon/easy"
   mo "skfw/papaya/pigeon/templates/basicAuth/models"
+  "strings"
   "time"
 )
 
@@ -424,6 +425,7 @@ func AdminController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
         "name":        "string",
         "description": "string",
         "video?":      "string",
+        "category?":   "string",
         "price":       "number",
         "level":       "string",
       }),
@@ -450,15 +452,30 @@ func AdminController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
         name := m.KValueToString(body.Get("name"))
         description := m.KValueToString(body.Get("description"))
         video := m.KValueToString(body.Get("video"))
+        category := m.KValueToString(body.Get("category"))
         level := m.KValueToString(body.Get("level"))
         price := decimal.NewFromInt(util.ValueToInt64(body.Get("price")))
+
+        category = strings.TrimSpace(category)
+        var categories []string
+
+        if category != "" {
+
+          categories = strings.Split(category, ",")
+
+        } else {
+
+          categories = []string{"all"}
+        }
 
         if check, _ := courseRepo.Find("name = ?", name); check != nil {
 
           return ctx.BadRequest(kornet.Msg("course already exists", true))
         }
 
-        if _, err = courseRepo.Create(&models.Courses{
+        var course *models.Courses
+
+        if course, err = courseRepo.Create(&models.Courses{
           Model:       &easy.Model{},
           UserID:      user.ID,
           Name:        name,
@@ -469,6 +486,44 @@ func AdminController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
         }); err != nil {
 
           return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+        }
+
+        pp.Void(course)
+
+        for _, context := range categories {
+
+          context = strings.TrimSpace(context)
+
+          // skip context "all" in categories
+          if context == "all" {
+
+            continue
+          }
+
+          var categoryModel *models.Categories
+          var categoryCourseModel *models.CategoryCourses
+
+          if categoryModel, err = categoryRepo.Find("name = ?", context); err != nil {
+            if categoryModel, err = categoryRepo.Create(&models.Categories{
+              Model: &easy.Model{},
+              Name:  context,
+            }); err != nil {
+
+              return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+            }
+          }
+
+          if categoryCourseModel, err = categoryCourseRepo.Find("category_id = ? AND course_id = ?", categoryModel.ID, course.ID); err != nil {
+            if categoryCourseModel, err = categoryCourseRepo.Create(&models.CategoryCourses{
+              Model:      &easy.Model{},
+              CategoryID: categoryModel.ID,
+              CourseID:   course.ID,
+            }); err != nil {
+              return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+            }
+          }
+
+          pp.Void(categoryCourseModel)
         }
 
         return ctx.Created(kornet.Msg("successful create new course", false))
@@ -1318,13 +1373,14 @@ func AdminController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
     "description": "Create Course Category",
     "request": &m.KMap{
       "params": &m.KMap{
-        "id": "string", // course id
+        "id":          "string", // course id
+        "categoryId?": "string",
       },
       "headers": &m.KMap{
         "Authorization": "string",
       },
       "body": swag.JSON(&m.KMap{
-        "category_id": "string",
+        "category_id?": "string",
       }),
     },
     "responses": swag.CreatedJSON(&kornet.Result{}),
@@ -1342,6 +1398,7 @@ func AdminController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
 
         kReq, _ := ctx.Kornet()
         courseId := m.KValueToString(kReq.Query.Get("id"))
+        categoryId := m.KValueToString(kReq.Query.Get("categoryId"))
 
         body := &m.KMap{}
 
@@ -1350,7 +1407,12 @@ func AdminController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
           return ctx.InternalServerError(kornet.Msg(err.Error(), true))
         }
 
-        categoryId := m.KValueToString(body.Get("category_id"))
+        categoryId = pp.Qstr(categoryId, m.KValueToString(body.Get("category_id")))
+
+        if categoryId == "" {
+
+          return ctx.BadRequest(kornet.Msg("category id is empty", true))
+        }
 
         if _, err = categoryCourseRepo.Create(&models.CategoryCourses{
           Model:      &easy.Model{},
