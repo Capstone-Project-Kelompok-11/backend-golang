@@ -16,11 +16,13 @@ type CourseRepository struct {
 type CourseRepositoryImpl interface {
   easy.RepositoryImpl[models.Courses]
   FindAllAndOrder(size int, page int, sort string, query any, args ...any) ([]models.Courses, error)
+  FindAllAndOrderPopular(size int, page int, sort string, query any, args ...any) ([]models.Courses, error)
   PreFindAllAndOrder(size int, page int, sort string, query any, args ...any) ([]models.Courses, error)
   PreFind(query any, args ...any) (*models.Courses, error)
   UpdateMemberCountById(id string) error
   PreFindByCheckUserAndCourseId(userId string, courseId string) (*models.Courses, error)
   PreCatchAll(size int, page int) ([]models.Courses, error)
+  PreCatchAllPopular(size int, page int) ([]models.Courses, error)
   CountCourse(courseCount *int64) error
 }
 
@@ -120,6 +122,34 @@ func (c *CourseRepository) PreCatchAll(size int, page int) ([]models.Courses, er
   return data, nil
 }
 
+func (c *CourseRepository) PreCatchAllPopular(size int, page int) ([]models.Courses, error) {
+
+  c.SessionNew()
+
+  var err error
+
+  data := make([]models.Courses, 0)
+
+  if page > 0 {
+
+    offset := size * (page - 1)
+    limit := size
+
+    if err = c.GORM().
+      Preload("CategoryCourses").
+      Joins("INNER JOIN (SELECT courses.id AS id, (k / n)::FLOAT AS rating FROM courses INNER JOIN (SELECT id, (rating1 + rating2 + rating3 + rating4 + rating5)::FLOAT AS n, (rating1 + (rating2 * 2) + (rating3 * 3) + (rating4 * 4) + (rating5 * 5))::FLOAT AS k FROM courses) AS modify ON courses.id = modify.id WHERE n > 0 ORDER BY rating DESC, member_count DESC) AS popular ON courses.id = popular.id").
+      Offset(offset).
+      Limit(limit).
+      Find(&data).
+      Error; err != nil {
+
+      return data, errors.New(fmt.Sprintf("unable to catch courses"))
+    }
+  }
+
+  return data, nil
+}
+
 func (c *CourseRepository) FindAllAndOrder(size int, page int, sort string, query any, args ...any) ([]models.Courses, error) {
 
   c.SessionNew()
@@ -135,6 +165,36 @@ func (c *CourseRepository) FindAllAndOrder(size int, page int, sort string, quer
 
     if err = c.GORM().
       Preload("CategoryCourses").
+      Where(query, args...).
+      Order(sort).
+      Offset(offset).
+      Limit(limit).
+      Find(&data).
+      Error; err != nil {
+
+      return data, errors.New(fmt.Sprintf("unable to catch courses"))
+    }
+  }
+
+  return data, nil
+}
+
+func (c *CourseRepository) FindAllAndOrderPopular(size int, page int, sort string, query any, args ...any) ([]models.Courses, error) {
+
+  c.SessionNew()
+
+  var err error
+
+  data := make([]models.Courses, 0)
+
+  if page > 0 {
+
+    offset := size * (page - 1)
+    limit := size
+
+    if err = c.GORM().
+      Preload("CategoryCourses").
+      Joins("INNER JOIN (SELECT courses.id AS id, (k / n)::FLOAT AS rating FROM courses INNER JOIN (SELECT id, (rating1 + rating2 + rating3 + rating4 + rating5)::FLOAT AS n, (rating1 + (rating2 * 2) + (rating3 * 3) + (rating4 * 4) + (rating5 * 5))::FLOAT AS k FROM courses) AS modify ON courses.id = modify.id WHERE n > 0 ORDER BY rating DESC, member_count DESC) AS popular ON courses.id = popular.id").
       Where(query, args...).
       Order(sort).
       Offset(offset).

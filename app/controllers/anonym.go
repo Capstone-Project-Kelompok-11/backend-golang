@@ -273,6 +273,140 @@ func AnonymController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
     return ctx.OK(kornet.ResultNew(kornet.MessageNew("catch all courses", false), reduced))
   })
 
+  router.Get("/course/populars", &m.KMap{
+    "description": "Catch All Courses Populars",
+    "request": &m.KMap{
+      "params": &m.KMap{
+        "page":      "number",
+        "size":      "number",
+        "search?":   "string",
+        "sort?":     "string",
+        "category?": "string", // csv by comma
+      },
+    },
+    "responses": swag.OkJSON(&kornet.Result{
+      Data: []m.KMapImpl{
+        &m.KMap{
+          "id":          "string",
+          "name":        "string",
+          "description": "string",
+          "thumbnail":   "string",
+          "video":       "string",
+          "document":    "string",
+          "price":       "number",
+          "level":       "string",
+          "rating":      "number",
+          "finished":    "number",
+          "members":     "number",
+        },
+      },
+    }),
+  }, func(ctx *swag.SwagContext) error {
+
+    var err error
+    var data []models.Courses
+
+    kReq, _ := ctx.Kornet()
+
+    page := util.ValueToInt(kReq.Query.Get("page"))
+    size := util.ValueToInt(kReq.Query.Get("size"))
+    search := m.KValueToString(kReq.Query.Get("search"))
+    sort := m.KValueToString(kReq.Query.Get("sort"))
+    category := m.KValueToString(kReq.Query.Get("category"))
+
+    category = strings.TrimSpace(category)
+    var categories []string
+
+    if category != "" {
+
+      categories = strings.Split(category, ",")
+
+    } else {
+
+      categories = []string{"all"}
+    }
+
+    for i, context := range categories {
+
+      categories[i] = strings.TrimSpace(context)
+    }
+
+    if search, sort, err = util.SafeParseSearchAndSortOrder(search, sort); err != nil {
+
+      return ctx.BadRequest(kornet.Msg(err.Error(), true))
+    }
+
+    if search != "%%" {
+
+      if data, err = courseRepo.FindAllAndOrderPopular(size, page, "name "+sort, "name LIKE ?", search); err != nil {
+
+        return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+      }
+
+    } else {
+
+      if data, err = courseRepo.PreCatchAllPopular(size, page); err != nil {
+
+        return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+      }
+    }
+
+    exposed := util.CourseDataCollective(userRepo, data)
+    reduced := make([]m.KMapImpl, 0)
+
+    for _, course := range exposed {
+
+      categoriesCourse := make([]string, 0)
+
+      if categoryCourseModels, ok := course.Get("category_courses").([]models.CategoryCourses); ok {
+
+        for _, categoryCourseModel := range categoryCourseModels {
+
+          if categoryModel, _ := categoryRepo.Find("id", categoryCourseModel.CategoryID); categoryModel != nil {
+
+            categoriesCourse = append(categoriesCourse, categoryModel.Name)
+          }
+        }
+      }
+
+      course.Put("categories", categoriesCourse)
+      course.Del("category_courses")
+
+      categoryIncluded := true             // always true, maybe category comma separator is empty
+      for _, context := range categories { // can handle none if category comma separator is empty
+
+        if context == "all" {
+
+          categoryIncluded = true
+          break
+        }
+
+        found := false
+        for _, categoryCourse := range categoriesCourse {
+
+          if categoryCourse == context {
+
+            found = true
+            break
+          }
+        }
+
+        if !found {
+
+          categoryIncluded = false
+          break
+        }
+      }
+
+      if categoryIncluded {
+
+        reduced = append(reduced, course)
+      }
+    }
+
+    return ctx.OK(kornet.ResultNew(kornet.MessageNew("catch all courses", false), reduced))
+  })
+
   router.Get("/cert/:src", &m.KMap{
     "description": "Get Public Certificate",
     "request": &m.KMap{

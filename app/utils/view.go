@@ -18,6 +18,12 @@ func RatingView(rating Rating) float64 {
   r4 := float64(4 * rating.Rating4)
   r5 := float64(5 * rating.Rating5)
   n := float64(rating.Rating1 + rating.Rating2 + rating.Rating3 + rating.Rating4 + rating.Rating5)
+
+  if n == 0 {
+
+    return 0
+  }
+
   k := (r1 + r2 + r3 + r4 + r5) / n
   x := []float64{.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5}
 
