@@ -52,6 +52,8 @@ func AdminController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
     "responses": swag.OkJSON(&kornet.Message{}),
   }, func(ctx *swag.SwagContext) error {
 
+    var err error
+
     if ctx.Event() {
 
       if user, ok := ctx.Target().(*mo.UserModel); ok {
@@ -63,6 +65,16 @@ func AdminController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
         courseId := m.KValueToString(kReq.Query.Get("id"))
 
         if check, _ := courseRepo.Find("id = ?", courseId); check != nil {
+
+          if check.Thumbnail == "" {
+
+            check.Thumbnail, _ = util.GenUniqFileNameOutput("assets/public/images", "course.thumb.png")
+
+            if err = courseRepo.Update(check, "id = ?", check.ID); err != nil {
+
+              return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+            }
+          }
 
           return util.SwagSaveImage(ctx, check.Thumbnail, func(name string) error {
 
@@ -146,6 +158,8 @@ func AdminController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
     "responses": swag.OkJSON(&kornet.Message{}),
   }, func(ctx *swag.SwagContext) error {
 
+    var err error
+
     if ctx.Event() {
 
       if user, ok := ctx.Target().(*mo.UserModel); ok {
@@ -157,6 +171,16 @@ func AdminController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
         courseId := m.KValueToString(kReq.Query.Get("id"))
 
         if check, _ := courseRepo.Find("id = ?", courseId); check != nil {
+
+          if check.Document == "" {
+
+            check.Document, _ = util.GenUniqFileNameOutput("assets/public/documents", "course.doc")
+
+            if err = courseRepo.Update(check, "id = ?", check.ID); err != nil {
+
+              return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+            }
+          }
 
           return util.SwagSaveDocument(ctx, check.Document, func(name string) error {
 
@@ -240,6 +264,8 @@ func AdminController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
     "responses": swag.OkJSON(&kornet.Message{}),
   }, func(ctx *swag.SwagContext) error {
 
+    var err error
+
     if ctx.Event() {
 
       if user, ok := ctx.Target().(*mo.UserModel); ok {
@@ -251,6 +277,16 @@ func AdminController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
         moduleId := m.KValueToString(kReq.Query.Get("id"))
 
         if check, _ := moduleRepo.Find("id = ?", moduleId); check != nil {
+
+          if check.Thumbnail == "" {
+
+            check.Thumbnail, _ = util.GenUniqFileNameOutput("assets/public/images", "module.thumb.png")
+
+            if err = moduleRepo.Update(check, "id = ?", check.ID); err != nil {
+
+              return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+            }
+          }
 
           return util.SwagSaveImage(ctx, check.Thumbnail, func(name string) error {
 
@@ -334,6 +370,8 @@ func AdminController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
     "responses": swag.OkJSON(&kornet.Message{}),
   }, func(ctx *swag.SwagContext) error {
 
+    var err error
+
     if ctx.Event() {
 
       if user, ok := ctx.Target().(*mo.UserModel); ok {
@@ -345,6 +383,16 @@ func AdminController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
         moduleId := m.KValueToString(kReq.Query.Get("id"))
 
         if check, _ := moduleRepo.Find("id = ?", moduleId); check != nil {
+
+          if check.Document == "" {
+
+            check.Document, _ = util.GenUniqFileNameOutput("assets/public/documents", "module.doc")
+
+            if err = moduleRepo.Update(check, "id = ?", check.ID); err != nil {
+
+              return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+            }
+          }
 
           return util.SwagSaveDocument(ctx, check.Document, func(name string) error {
 
@@ -1296,37 +1344,7 @@ func AdminController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
       return ctx.InternalServerError(kornet.Msg(err.Error(), true))
     }
 
-    exposed := make([]m.KMapImpl, len(data))
-
-    for i, checkout := range data {
-
-      user := &models.Users{}
-      course := &models.Courses{}
-
-      if user, err = userRepo.Find("id = ?", checkout.UserID); err != nil {
-
-        continue
-      }
-
-      if course, err = courseRepo.Find("id = ?", checkout.CourseID); err != nil {
-
-        continue
-      }
-
-      exposed[i] = &m.KMap{
-        "data": checkout,
-        "user": &m.KMap{
-          "name":     user.Name.String,
-          "username": user.Username,
-          "email":    user.Email,
-        },
-        "course": &m.KMap{
-          "name": course.Name,
-        },
-        "paid":   checkout.Verify,
-        "cancel": checkout.DeletedAt.Valid,
-      }
-    }
+    exposed := util.CheckoutDataCollective(userRepo, courseRepo, data)
 
     return ctx.OK(kornet.ResultNew(kornet.MessageNew("checkout history", false), exposed))
   })

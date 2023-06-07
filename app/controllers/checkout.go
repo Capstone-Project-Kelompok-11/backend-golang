@@ -4,6 +4,7 @@ import (
   "encoding/json"
   "lms/app/models"
   "lms/app/repository"
+  util "lms/app/utils"
   "skfw/papaya"
   "skfw/papaya/bunny/swag"
   "skfw/papaya/koala/kornet"
@@ -27,6 +28,57 @@ func CheckoutController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
   // paid, checkout verify = true
   // unpaid, checkout verify = false
   // cancel, checkout verify = false & remove = true
+
+  router.Get("/checkout/history", &m.KMap{
+    "AuthToken":   true,
+    "description": "Catch All Checkout",
+    "request": m.KMap{
+      "params": &m.KMap{
+        "size?": "number",
+        "page?": "number",
+      },
+      "headers": &m.KMap{
+        "Authorization": "string",
+      },
+    },
+    "responses": swag.OkJSON(&kornet.Result{}),
+  }, func(ctx *swag.SwagContext) error {
+
+    var err error
+    var checkouts []models.Checkout
+
+    pp.Void(err)
+
+    if ctx.Event() {
+
+      if userModel, ok := ctx.Target().(*mo.UserModel); ok {
+
+        pp.Void(userModel)
+
+        kReq, _ := ctx.Kornet()
+        size := util.ValueToInt(kReq.Query.Get("size"))
+        page := util.ValueToInt(kReq.Query.Get("page"))
+
+        if size == 0 {
+          size = -1
+        }
+        if page == 0 {
+          page = -1
+        }
+
+        if checkouts, err = checkoutRepo.Unscoped().FindAll(size, page, "user_id = ?", userModel.ID); err != nil {
+
+          return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+        }
+
+        exposed := util.CheckoutDataCollective(userRepo, courseRepo, checkouts)
+
+        return ctx.OK(kornet.ResultNew(kornet.MessageNew("catch all checkouts", false), exposed))
+      }
+    }
+
+    return ctx.InternalServerError(kornet.Msg("unable to get user information", true))
+  })
 
   router.Get("/checkout/paid", &m.KMap{
     "AuthToken":   true,
@@ -55,7 +107,9 @@ func CheckoutController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
           return ctx.InternalServerError(kornet.Msg(err.Error(), true))
         }
 
-        return ctx.OK(kornet.ResultNew(kornet.MessageNew("catch all checkouts", false), checkouts))
+        exposed := util.CheckoutDataCollective(userRepo, courseRepo, checkouts)
+
+        return ctx.OK(kornet.ResultNew(kornet.MessageNew("catch all checkouts", false), exposed))
       }
     }
 
@@ -89,7 +143,9 @@ func CheckoutController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
           return ctx.InternalServerError(kornet.Msg(err.Error(), true))
         }
 
-        return ctx.OK(kornet.ResultNew(kornet.MessageNew("catch all checkouts", false), checkouts))
+        exposed := util.CheckoutDataCollective(userRepo, courseRepo, checkouts)
+
+        return ctx.OK(kornet.ResultNew(kornet.MessageNew("catch all checkouts", false), exposed))
       }
     }
 
@@ -123,7 +179,9 @@ func CheckoutController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
           return ctx.InternalServerError(kornet.Msg(err.Error(), true))
         }
 
-        return ctx.OK(kornet.ResultNew(kornet.MessageNew("catch all checkouts", false), checkouts))
+        exposed := util.CheckoutDataCollective(userRepo, courseRepo, checkouts)
+
+        return ctx.OK(kornet.ResultNew(kornet.MessageNew("catch all checkouts", false), exposed))
       }
     }
 
