@@ -33,7 +33,7 @@ func CheckoutDataCollective(userRepo repository.UserRepositoryImpl, courseRepo r
         "id":       user.ID,
         "name":     user.Name.String,
         "username": user.Username,
-        "email":    user.Email,
+        "image":    user.Image,
       },
       "course": &m.KMap{
         "id":        course.ID,
