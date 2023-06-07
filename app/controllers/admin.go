@@ -624,6 +624,7 @@ func AdminController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
   }, func(ctx *swag.SwagContext) error {
 
     var err error
+    var course *models.Courses
 
     if ctx.Event() {
 
@@ -635,12 +636,33 @@ func AdminController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
 
         courseId := m.KValueToString(kReq.Query.Get("id"))
 
-        if err = courseRepo.Remove("id = ?", courseId); err != nil {
+        if course, err = courseRepo.Find("id = ?", courseId); course != nil {
 
-          return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+          if err = courseRepo.Remove("id = ?", course.ID); err != nil {
+
+            return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+          }
+
+          if course.Thumbnail != "" {
+
+            if err = util.SwagRemoveImage(ctx, course.Thumbnail); err != nil {
+
+              return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+            }
+          }
+
+          if course.Document != "" {
+
+            if err = util.SwagRemoveDocument(ctx, course.Document); err != nil {
+
+              return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+            }
+          }
+
+          return ctx.OK(kornet.Msg("successful delete course", false))
         }
 
-        return ctx.OK(kornet.Msg("successful delete course", false))
+        return ctx.BadRequest(kornet.Msg("course not found", true))
       }
     }
 
@@ -800,6 +822,7 @@ func AdminController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
   }, func(ctx *swag.SwagContext) error {
 
     var err error
+    var module *models.Modules
 
     if ctx.Event() {
 
@@ -811,12 +834,33 @@ func AdminController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
 
         moduleId := m.KValueToString(kReq.Query.Get("id"))
 
-        if err = moduleRepo.Remove("id = ?", moduleId); err != nil {
+        if module, err = moduleRepo.Find("id = ?", moduleId); module != nil {
 
-          return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+          if err = moduleRepo.Remove("id = ?", module.ID); err != nil {
+
+            return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+          }
+
+          if module.Thumbnail != "" {
+
+            if err = util.SwagRemoveImage(ctx, module.Thumbnail); err != nil {
+
+              return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+            }
+          }
+
+          if module.Document != "" {
+
+            if err = util.SwagRemoveDocument(ctx, module.Document); err != nil {
+
+              return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+            }
+          }
+
+          return ctx.OK(kornet.Msg("successful delete module", false))
         }
 
-        return ctx.OK(kornet.Msg("successful delete module", false))
+        return ctx.BadRequest(kornet.Msg("module not found", true))
       }
     }
 
@@ -1122,7 +1166,7 @@ func AdminController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
           return ctx.BadRequest(kornet.Msg("course not found", true))
         }
 
-        collective := util.CourseDataCollective([]models.Courses{*course})
+        collective := util.CourseDataCollective(userRepo, []models.Courses{*course})
 
         if len(collective) > 0 {
 
@@ -1199,7 +1243,7 @@ func AdminController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
           return ctx.InternalServerError(kornet.Msg(err.Error(), true))
         }
 
-        collective := util.CourseDataCollective(data)
+        collective := util.CourseDataCollective(userRepo, data)
 
         return ctx.OK(kornet.ResultNew(kornet.MessageNew("catch full course", false), collective))
       }

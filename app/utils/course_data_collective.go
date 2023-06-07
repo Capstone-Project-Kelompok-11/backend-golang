@@ -2,17 +2,36 @@ package util
 
 import (
   "lms/app/models"
+  "lms/app/repository"
   m "skfw/papaya/koala/mapping"
 )
 
-func CourseDataCollective(data []models.Courses) []m.KMapImpl {
+func CourseDataCollective(userRepo repository.UserRepositoryImpl, data []models.Courses) []m.KMapImpl {
 
+  var err error
   res := make([]m.KMapImpl, 0)
 
   for _, course := range data {
 
+    userinfo := &m.KMap{}
+
+    var user *models.Users
+
+    if user, err = userRepo.Find("id = ?", course.UserID); err != nil {
+
+      userinfo = nil
+    }
+
+    if userinfo != nil {
+
+      userinfo.Put("name", user.Name.String)
+      userinfo.Put("username", user.Username)
+      userinfo.Put("image", user.Image)
+    }
+
     mm := &m.KMap{
       "id":          course.Model.ID,
+      "create_by":   userinfo,
       "name":        course.Name,
       "description": course.Description,
       "thumbnail":   course.Thumbnail,

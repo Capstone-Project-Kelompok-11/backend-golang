@@ -24,6 +24,7 @@ func CourseController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
   conn := pn.Connection()
   DB := conn.GORM()
 
+  userRepo, _ := repository.UserRepositoryNew(DB)
   checkoutRepo, _ := repository.CheckoutRepositoryNew(DB)
   courseRepo, _ := repository.CourseRepositoryNew(DB)
   moduleRepo, _ := repository.ModuleRepositoryNew(DB)
@@ -81,7 +82,7 @@ func CourseController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
 
         if data, err = courseRepo.PreFindByCheckUserAndCourseId(userModel.ID, courseId); data != nil {
 
-          collective := util.CourseDataCollective([]models.Courses{*data})
+          collective := util.CourseDataCollective(userRepo, []models.Courses{*data})
 
           if len(collective) > 0 {
 

@@ -217,7 +217,7 @@ func AnonymController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
       }
     }
 
-    exposed := util.CourseDataCollective(data)
+    exposed := util.CourseDataCollective(userRepo, data)
     reduced := make([]m.KMapImpl, 0)
 
     for _, course := range exposed {
