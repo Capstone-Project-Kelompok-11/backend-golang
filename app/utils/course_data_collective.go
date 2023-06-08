@@ -13,25 +13,20 @@ func CourseDataCollective(userRepo repository.UserRepositoryImpl, data []models.
 
   for _, course := range data {
 
-    userinfo := &m.KMap{}
-
     var user *models.Users
 
     if user, err = userRepo.Find("id = ?", course.UserID); err != nil {
 
-      userinfo = nil
-    }
-
-    if userinfo != nil {
-
-      userinfo.Put("name", user.Name.String)
-      userinfo.Put("username", user.Username)
-      userinfo.Put("image", user.Image)
+      continue
     }
 
     mm := &m.KMap{
-      "id":          course.Model.ID,
-      "create_by":   userinfo,
+      "id": course.Model.ID,
+      "create_by": &m.KMap{
+        "name":     user.Name.String,
+        "username": user.Username,
+        "image":    user.Image,
+      },
       "name":        course.Name,
       "description": course.Description,
       "thumbnail":   course.Thumbnail,

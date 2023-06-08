@@ -27,6 +27,7 @@ $CLOUD_USER@$CLOUD_ADDR:/app/templates/documents/certificates
 cat << "EOF" | ssh -T $CLOUD_USER@$CLOUD_ADDR
 cd /app
 cat base.psql | sudo -u postgres psql
+chmod 644 /app/app.service
 ln -sfn /app/app.service /lib/systemd/system/app.service
 systemctl start app
 systemctl daemon-reload
