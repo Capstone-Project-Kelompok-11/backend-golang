@@ -41,15 +41,25 @@ func AnonymController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
     "description": "Get Public Image",
     "request": &m.KMap{
       "params": &m.KMap{
-        "#src": "string",
+        "#src":    "string",
+        "width?":  "number",
+        "height?": "number",
+        "scale?":  "number",
       },
     },
     "responses": nil,
   }, func(ctx *swag.SwagContext) error {
 
+    var err error
+
     kReq, _ := ctx.Kornet()
 
     src := util.SafePathName(m.KValueToString(kReq.Path.Get("src")))
+    width := util.ValueToInt(kReq.Query.Get("width"))
+    height := util.ValueToInt(kReq.Query.Get("height"))
+    scale := util.ValueToInt(kReq.Query.Get("scale"))
+
+    var data []byte
 
     if src != "" {
 
@@ -61,7 +71,12 @@ func AnonymController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
 
         if file.IsFile() {
 
-          return ctx.SendFile(src, true)
+          if data, err = util.ImagePreview(src, width, height, scale); err != nil {
+
+            return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+          }
+
+          return ctx.Send(data)
         }
       }
 
@@ -217,7 +232,7 @@ func AnonymController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
       }
     }
 
-    exposed := util.CourseDataCollective(userRepo, data)
+    exposed := util.CourseDataCollective(ctx, userRepo, data)
     reduced := make([]m.KMapImpl, 0)
 
     for _, course := range exposed {
@@ -351,7 +366,7 @@ func AnonymController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
       }
     }
 
-    exposed := util.CourseDataCollective(userRepo, data)
+    exposed := util.CourseDataCollective(ctx, userRepo, data)
     reduced := make([]m.KMapImpl, 0)
 
     for _, course := range exposed {
@@ -471,7 +486,9 @@ func AnonymController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
         return ctx.InternalServerError(kornet.Msg(err.Error(), true))
       }
 
-      return ctx.OK(kornet.ResultNew(kornet.MessageNew("catch all banners", false), banners))
+      data := util.BannersDataCollective(ctx, banners)
+
+      return ctx.OK(kornet.ResultNew(kornet.MessageNew("catch all banners", false), data))
     })
 
   router.Get("/course/reviews", &m.KMap{

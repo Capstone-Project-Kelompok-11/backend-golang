@@ -43,6 +43,7 @@ func ActionController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
         "name":         "string",
         "username":     "string",
         "image":        "string",
+        "image_url":    "string",
         "email":        "string",
         "gender":       "string",
         "phone":        "string",
@@ -60,13 +61,29 @@ func ActionController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
 
     var err error
     var user *models.Users
+    var URL *url.URL
 
     if ctx.Event() {
 
       if userModel, ok := ctx.Target().(*mo.UserModel); ok {
 
+        if URL, err = url.Parse(ctx.BaseURL()); err != nil {
+
+          URL = &url.URL{}
+        }
+
+        imagePub := posix.KPathNew("/api/v1/public/image")
+
         // get full user information
         if user, err = userRepo.Find("id = ?", userModel.ID); user != nil {
+
+          if user.Image != "" {
+
+            URL.Path = imagePub.Copy().JoinStr(user.Image)
+            URL.RawPath = URL.Path
+
+            user.Image = URL.String()
+          }
 
           return ctx.OK(kornet.ResultNew(kornet.MessageNew("successful get user information", false), &m.KMap{
             "name":         user.Name.String,
@@ -269,7 +286,7 @@ func ActionController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
 
         if check, _ := userRepo.Find("id = ?", user.ID); check != nil {
 
-          if check.Image == "" {
+          if check.Image != "" {
 
             check.Image, _ = util.GenUniqFileNameOutput("assets/public/images", "profile.png")
 

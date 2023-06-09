@@ -1214,7 +1214,7 @@ func AdminController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
           return ctx.BadRequest(kornet.Msg("course not found", true))
         }
 
-        collective := util.CourseDataCollective(userRepo, []models.Courses{*course})
+        collective := util.CourseDataCollective(ctx, userRepo, []models.Courses{*course})
 
         if len(collective) > 0 {
 
@@ -1291,7 +1291,7 @@ func AdminController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
           return ctx.InternalServerError(kornet.Msg(err.Error(), true))
         }
 
-        collective := util.CourseDataCollective(userRepo, data)
+        collective := util.CourseDataCollective(ctx, userRepo, data)
 
         return ctx.OK(kornet.ResultNew(kornet.MessageNew("catch full course", false), collective))
       }
@@ -1344,7 +1344,7 @@ func AdminController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
       return ctx.InternalServerError(kornet.Msg(err.Error(), true))
     }
 
-    exposed := util.CheckoutDataCollective(userRepo, courseRepo, data)
+    exposed := util.CheckoutDataCollective(ctx, userRepo, courseRepo, data)
 
     return ctx.OK(kornet.ResultNew(kornet.MessageNew("checkout history", false), exposed))
   })
@@ -1969,8 +1969,12 @@ func AdminController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
 
     if URL, err = url.Parse(ctx.BaseURL()); err != nil {
 
-      return ctx.InternalServerError(kornet.Msg("unable to parse base url", true))
+      URL = &url.URL{}
     }
+
+    imagePub := posix.KPathNew("/api/v1/public/image")
+    documentPub := posix.KPathNew("/api/v1/public/document")
+    videoPub := posix.KPathNew("/api/v1/public/video")
 
     if assigns, err = assignRepo.CatchAll(size, page); err != nil {
 
@@ -1981,13 +1985,34 @@ func AdminController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
 
     for _, assign := range assigns {
 
-      URL.Path = "/api/v1/public/documents"
-      URL.RawPath = URL.Path
+      if assign.Document != "" {
+
+        URL.Path = documentPub.Copy().JoinStr(assign.Document)
+        URL.RawPath = URL.Path
+
+        assign.Document = URL.String()
+      }
+
+      if assign.Video != "" {
+
+        URL.Path = videoPub.Copy().JoinStr(assign.Video)
+        URL.RawPath = URL.Path
+
+        assign.Video = URL.String()
+      }
 
       exposed := &m.KMap{}
       userId := assign.UserID
 
       if user, _ := userRepo.Find("id = ?", userId); user != nil {
+
+        if user.Image != "" {
+
+          URL.Path = imagePub.Copy().JoinStr(user.Image)
+          URL.RawPath = URL.Path
+
+          user.Image = URL.String()
+        }
 
         exposed.Put("user", &m.KMap{
           "name":     user.Name.String,
@@ -1996,14 +2021,10 @@ func AdminController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
         })
       }
 
-      URL.Path = posix.KPathNew(URL.Path).JoinStr(assign.Document)
-      URL.RawPath = URL.Path
-
       exposed.Put("data", &m.KMap{
-        "id":           assign.ID,
-        "document":     assign.Document,
-        "document_url": URL.String(),
-        "video":        assign.Video,
+        "id":       assign.ID,
+        "document": assign.Document,
+        "video":    assign.Video,
       })
 
       data = append(data, exposed)

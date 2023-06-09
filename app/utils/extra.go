@@ -11,6 +11,7 @@ import (
   "image/png"
   "io"
   "math/rand"
+  "mime"
   "mime/multipart"
   "net/http"
   "net/url"
@@ -489,4 +490,92 @@ func SaveDocument(key string, output string) fiber.Handler {
 
     return ctx.Status(http.StatusCreated).JSON(kornet.Msg("upload document successfully", false))
   }
+}
+
+func ImagePreview(src string, width int, height int, scale int) ([]byte, error) {
+
+  // width int, height int
+  // scale between 0, 100
+
+  var data []byte
+  var err error
+
+  if data, err = os.ReadFile(src); err != nil {
+
+    return nil, err
+  }
+
+  var extensions []string
+
+  cty := http.DetectContentType(data)
+  cty, _ = kornet.KSafeContentTy(cty)
+
+  if extensions, err = mime.ExtensionsByType(cty); err != nil {
+
+    return nil, errors.New("unsupported format")
+  }
+
+  n := len(extensions)
+
+  if n == 0 { // extension not defined
+
+    return nil, errors.New("unsupported format")
+  }
+
+  temp := extensions[n-1]
+  ext, _ := strings.CutPrefix(temp, ".")
+  ext = pp.Qstr(ext, temp)
+
+  var img image.Image
+
+  if img, _, err = image.Decode(bytes.NewReader(data)); err != nil {
+
+    return nil, err
+  }
+
+  // absolute number
+  if scale < 0 {
+
+    scale = 0
+  }
+
+  // default scale number
+  if scale == 0 {
+
+    scale = 100
+  }
+
+  s := float64(scale) / 100.
+  w := int(float64(pp.Lint(width > 0, width, img.Bounds().Max.X)) * s)
+  h := int(float64(pp.Lint(height > 0, height, img.Bounds().Max.Y)) * s)
+
+  dst := image.NewRGBA(image.Rect(0, 0, w, h))
+
+  draw.NearestNeighbor.Scale(dst, dst.Rect, img, img.Bounds(), draw.Over, nil)
+
+  var buf bytes.Buffer
+
+  switch ext {
+  case "png":
+
+    if err = png.Encode(&buf, dst); err != nil {
+
+      return nil, err
+    }
+    break
+
+  case "jpe", "jpeg", "jpg":
+
+    if err = jpeg.Encode(&buf, dst, nil); err != nil {
+
+      return nil, err
+    }
+    break
+
+  default:
+
+    return nil, fmt.Errorf("unsupported format: %s", ext)
+  }
+
+  return buf.Bytes(), nil
 }

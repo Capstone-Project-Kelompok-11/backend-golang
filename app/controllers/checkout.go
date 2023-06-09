@@ -71,7 +71,7 @@ func CheckoutController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
           return ctx.InternalServerError(kornet.Msg(err.Error(), true))
         }
 
-        exposed := util.CheckoutDataCollective(userRepo, courseRepo, checkouts)
+        exposed := util.CheckoutDataCollective(ctx, userRepo, courseRepo, checkouts)
 
         return ctx.OK(kornet.ResultNew(kornet.MessageNew("catch all checkouts", false), exposed))
       }
@@ -107,7 +107,7 @@ func CheckoutController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
           return ctx.InternalServerError(kornet.Msg(err.Error(), true))
         }
 
-        exposed := util.CheckoutDataCollective(userRepo, courseRepo, checkouts)
+        exposed := util.CheckoutDataCollective(ctx, userRepo, courseRepo, checkouts)
 
         return ctx.OK(kornet.ResultNew(kornet.MessageNew("catch all checkouts", false), exposed))
       }
@@ -143,7 +143,7 @@ func CheckoutController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
           return ctx.InternalServerError(kornet.Msg(err.Error(), true))
         }
 
-        exposed := util.CheckoutDataCollective(userRepo, courseRepo, checkouts)
+        exposed := util.CheckoutDataCollective(ctx, userRepo, courseRepo, checkouts)
 
         return ctx.OK(kornet.ResultNew(kornet.MessageNew("catch all checkouts", false), exposed))
       }
@@ -179,7 +179,7 @@ func CheckoutController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
           return ctx.InternalServerError(kornet.Msg(err.Error(), true))
         }
 
-        exposed := util.CheckoutDataCollective(userRepo, courseRepo, checkouts)
+        exposed := util.CheckoutDataCollective(ctx, userRepo, courseRepo, checkouts)
 
         return ctx.OK(kornet.ResultNew(kornet.MessageNew("catch all checkouts", false), exposed))
       }

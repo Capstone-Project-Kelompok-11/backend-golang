@@ -50,24 +50,26 @@ func CourseController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
       },
     },
     "responses": swag.OkJSON(&m.KMap{
-      "id":          "string",
-      "name":        "string",
-      "description": "string",
-      "thumbnail":   "string",
-      "video":       "string",
-      "document":    "string",
-      "price":       "number",
-      "level":       "string",
-      "rating":      "number",
-      "finished":    "number",
-      "members":     "number",
-      "modules":     []models.Modules{},
+      "id":            "string",
+      "name":          "string",
+      "description":   "string",
+      "thumbnail":     "string",
+      "thumbnail_url": "string",
+      "video":         "string",
+      "document":      "string",
+      "price":         "number",
+      "level":         "string",
+      "rating":        "number",
+      "finished":      "number",
+      "members":       "number",
+      "modules":       []models.Modules{},
     }),
   }, func(ctx *swag.SwagContext) error {
 
     var err error
     var userModel *mo.UserModel
     var data *models.Courses
+    var URL *url.URL
     var ok bool
 
     pp.Void(err)
@@ -80,9 +82,18 @@ func CourseController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
 
         courseId := m.KValueToString(kReq.Query.Get("id"))
 
+        if URL, err = url.Parse(ctx.BaseURL()); err != nil {
+
+          URL = &url.URL{}
+        }
+
+        imagePub := posix.KPathNew("/api/v1/public/image")
+
+        pp.Void(URL, imagePub)
+
         if data, err = courseRepo.PreFindByCheckUserAndCourseId(userModel.ID, courseId); data != nil {
 
-          collective := util.CourseDataCollective(userRepo, []models.Courses{*data})
+          collective := util.CourseDataCollective(ctx, userRepo, []models.Courses{*data})
 
           if len(collective) > 0 {
 
@@ -177,16 +188,14 @@ func CourseController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
 
             if quizzes, err = quizRepo.Find("module_id = ?", moduleId); quizzes != nil {
 
-              var dataQuizzes util.Quizzes
-              if dataQuizzes, err = util.ParseQuizzes([]byte(quizzes.Data)); err != nil {
+              dataQuizzes := util.QuizzesDataCollective(ctx, []models.Quizzes{*quizzes})
 
-                return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+              if len(dataQuizzes) > 0 {
+
+                return ctx.OK(kornet.ResultNew(kornet.MessageNew("catch full quizzes", false), dataQuizzes[0]))
               }
 
-              // randomize quizzes without showing valid answer
-              dataQuizzes = util.QuizRandHideValid(dataQuizzes)
-
-              return ctx.OK(kornet.ResultNew(kornet.MessageNew("catch full quizzes", false), dataQuizzes))
+              return ctx.OK(kornet.Msg("quizzes empty", true))
             }
 
             return ctx.BadRequest(kornet.Msg("quizzes not found", true))
