@@ -17,6 +17,7 @@ import (
   "net/url"
   "os"
   "reflect"
+  "skfw/papaya/bunny/swag"
   "skfw/papaya/koala/kio"
   "skfw/papaya/koala/kornet"
   "skfw/papaya/koala/mapping"
@@ -492,7 +493,7 @@ func SaveDocument(key string, output string) fiber.Handler {
   }
 }
 
-func ImagePreview(src string, width int, height int, scale int) ([]byte, error) {
+func ImagePreview(ctx *swag.SwagContext, src string, width int, height int, scale int) ([]byte, error) {
 
   // width int, height int
   // scale between 0, 100
@@ -508,6 +509,9 @@ func ImagePreview(src string, width int, height int, scale int) ([]byte, error) 
   var extensions []string
 
   cty := http.DetectContentType(data)
+
+  ctx.Set("Content-Type", cty)
+
   cty, _ = kornet.KSafeContentTy(cty)
 
   if extensions, err = mime.ExtensionsByType(cty); err != nil {

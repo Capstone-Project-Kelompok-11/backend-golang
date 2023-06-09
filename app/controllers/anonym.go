@@ -71,7 +71,7 @@ func AnonymController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
 
         if file.IsFile() {
 
-          if data, err = util.ImagePreview(src, width, height, scale); err != nil {
+          if data, err = util.ImagePreview(ctx, src, width, height, scale); err != nil {
 
             return ctx.InternalServerError(kornet.Msg(err.Error(), true))
           }
