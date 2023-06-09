@@ -38,8 +38,8 @@ func App(pn papaya.NetImpl) error {
   userRouter := userGroup.Router()
 
   expired := time.Hour * 24
-  activeDuration := time.Hour * 4 // time to live, interval
-  maxSessions := 12
+  activeDuration := time.Minute * 24 // time to live, interval
+  maxSessions := 24
 
   controllers.AnonymController(pn, anonymRouter)
 
