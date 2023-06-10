@@ -33,6 +33,7 @@ func BannersDataCollective(ctx *swag.SwagContext, data []models.Banners) []m.KMa
     }
 
     mm := &m.KMap{
+      "id":  banner.ID,
       "alt": banner.Alt,
       "src": banner.Src,
     }

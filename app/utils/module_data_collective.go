@@ -51,6 +51,7 @@ func ModuleDataCollective(ctx *swag.SwagContext, data []models.Modules) []m.KMap
     }
 
     mm := &m.KMap{
+      "id":          module.ID,
       "name":        module.Name,
       "description": module.Description,
       "thumbnail":   module.Thumbnail,
