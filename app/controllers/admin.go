@@ -2035,6 +2035,8 @@ func AdminController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
           "name":     user.Name.String,
           "username": user.Username,
           "image":    user.Image,
+          "email":    user.Email,
+          "phone":    user.Phone.String,
         })
       }
 
