@@ -22,7 +22,7 @@ func ModuleDataCollective(ctx *swag.SwagContext, data []models.Modules) []m.KMap
 
   imagePub := posix.KPathNew("/api/v1/public/image")
   documentPub := posix.KPathNew("/api/v1/public/document")
-  videoPub := posix.KPathNew("/api/v1/public/video")
+  //videoPub := posix.KPathNew("/api/v1/public/video")
 
   for _, module := range data {
 
@@ -42,13 +42,13 @@ func ModuleDataCollective(ctx *swag.SwagContext, data []models.Modules) []m.KMap
       module.Document = URL.String()
     }
 
-    if module.Video != "" {
-
-      URL.Path = videoPub.Copy().JoinStr(module.Video)
-      URL.RawPath = URL.Path
-
-      module.Video = URL.String()
-    }
+    //if module.Video != "" {
+    //
+    //  URL.Path = videoPub.Copy().JoinStr(module.Video)
+    //  URL.RawPath = URL.Path
+    //
+    //  module.Video = URL.String()
+    //}
 
     mm := &m.KMap{
       "id":          module.ID,

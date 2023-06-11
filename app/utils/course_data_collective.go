@@ -23,7 +23,7 @@ func CourseDataCollective(ctx *swag.SwagContext, userRepo repository.UserReposit
 
   imagePub := posix.KPathNew("/api/v1/public/image")
   documentPub := posix.KPathNew("/api/v1/public/document")
-  videoPub := posix.KPathNew("/api/v1/public/video")
+  //videoPub := posix.KPathNew("/api/v1/public/video")
 
   for _, course := range data {
 
@@ -58,13 +58,13 @@ func CourseDataCollective(ctx *swag.SwagContext, userRepo repository.UserReposit
       course.Document = URL.String()
     }
 
-    if course.Video != "" {
-
-      URL.Path = videoPub.Copy().JoinStr(course.Video)
-      URL.RawPath = URL.Path
-
-      course.Video = URL.String()
-    }
+    //if course.Video != "" {
+    //
+    //  URL.Path = videoPub.Copy().JoinStr(course.Video)
+    //  URL.RawPath = URL.Path
+    //
+    //  course.Video = URL.String()
+    //}
 
     mm := &m.KMap{
       "id": course.Model.ID,

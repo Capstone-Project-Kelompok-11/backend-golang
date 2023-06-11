@@ -1974,7 +1974,7 @@ func AdminController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
 
     imagePub := posix.KPathNew("/api/v1/public/image")
     documentPub := posix.KPathNew("/api/v1/public/document")
-    videoPub := posix.KPathNew("/api/v1/public/video")
+    //videoPub := posix.KPathNew("/api/v1/public/video")
 
     if assigns, err = assignRepo.CatchAll(size, page); err != nil {
 
@@ -1993,13 +1993,13 @@ func AdminController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
         assign.Document = URL.String()
       }
 
-      if assign.Video != "" {
-
-        URL.Path = videoPub.Copy().JoinStr(assign.Video)
-        URL.RawPath = URL.Path
-
-        assign.Video = URL.String()
-      }
+      //if assign.Video != "" {
+      //
+      //  URL.Path = videoPub.Copy().JoinStr(assign.Video)
+      //  URL.RawPath = URL.Path
+      //
+      //  assign.Video = URL.String()
+      //}
 
       exposed := &m.KMap{}
       userId := assign.UserID
