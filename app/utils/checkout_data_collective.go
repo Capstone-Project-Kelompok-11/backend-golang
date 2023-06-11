@@ -48,10 +48,8 @@ func CheckoutDataCollective(ctx *swag.SwagContext, userRepo repository.UserRepos
         }
 
         mm := &m.KMap{
-          "id":   checkout.Model.ID,
-          "data": checkout,
+          "id": checkout.Model.ID,
           "user": &m.KMap{
-            "id":       user.ID,
             "name":     user.Name.String,
             "username": user.Username,
             "image":    user.Image,

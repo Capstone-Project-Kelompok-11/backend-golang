@@ -359,6 +359,8 @@ func ActionController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
 
         docURL := posix.KPathNew(URL.String())
 
+        // assign not fulfilled certificate, or maybe not anymore
+
         if completionCourse.Certificate != "" {
 
           return ctx.OK(kornet.ResultNew(kornet.MessageNew("certificate already exist", false), &m.KMap{

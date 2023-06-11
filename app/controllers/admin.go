@@ -36,6 +36,7 @@ func AdminController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
   eventRepo, _ := repository.EventRepositoryNew(DB)
   assignRepo, _ := repository.AssignmentRepositoryNew(DB)
   completionCourseRepo, _ := repository.CompletionCourseRepositoryNew(DB)
+  completionModuleRepo, _ := repository.CompletionModuleRepositoryNew(DB)
 
   router.Post("/course/thumbnail/upload", &m.KMap{
     "AuthToken":   true,
@@ -1783,9 +1784,19 @@ func AdminController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
               check.Src = filename
 
               return bannerRepo.Update(check, "id = ?", check.ID)
+
             }); err != nil {
 
               return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+            }
+
+            // fix swag error return
+
+            statusCode := ctx.Response().StatusCode()
+
+            if !(200 <= statusCode && statusCode < 300) {
+
+              return nil
             }
 
             return ctx.OK(kornet.Msg("successful update banner", false))
@@ -2001,8 +2012,14 @@ func AdminController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
       //  assign.Video = URL.String()
       //}
 
-      exposed := &m.KMap{}
+      exposed := &m.KMap{
+        "id":       assign.ID,
+        "document": assign.Document,
+        "video":    assign.Video,
+      }
+
       userId := assign.UserID
+      courseId := assign.CourseID
 
       if user, _ := userRepo.Find("id = ?", userId); user != nil {
 
@@ -2021,11 +2038,63 @@ func AdminController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
         })
       }
 
-      exposed.Put("data", &m.KMap{
-        "id":       assign.ID,
-        "document": assign.Document,
-        "video":    assign.Video,
-      })
+      // get data scores
+
+      var completionCourses *models.CompletionCourses
+      var completionModules []models.CompletionModules
+      var course *models.Courses
+
+      if completionCourses, err = completionCourseRepo.Find("user_id = ? AND course_id = ?", userId, courseId); err != nil {
+
+        return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+      }
+
+      if course, err = courseRepo.Find("id = ?", courseId); err != nil {
+
+        return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+      }
+
+      courseInfo := &m.KMap{
+        "id":   course.ID,
+        "name": course.Name,
+      }
+
+      if completionModules, err = completionModuleRepo.FindAll(-1, -1, "user_id = ? AND course_id = ?", userId, courseId); err != nil {
+
+        return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+      }
+
+      modules := make([]m.KMapImpl, len(completionModules))
+
+      for i, completionModule := range completionModules {
+
+        var module *models.Modules
+
+        if module, err = moduleRepo.Find("id = ?", completionModule.ModuleID); err != nil {
+
+          return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+        }
+
+        moduleInfo := &m.KMap{
+          "id":   module.ID,
+          "name": module.Name,
+        }
+
+        modules[i] = &m.KMap{
+          "id":     completionModule.ID,
+          "module": moduleInfo,
+          "score":  completionModule.Score,
+        }
+      }
+
+      report := &m.KMap{
+        "id":      completionCourses.ID,
+        "course":  courseInfo,
+        "score":   completionCourses.Score,
+        "modules": modules,
+      }
+
+      exposed.Put("report", report)
 
       data = append(data, exposed)
     }

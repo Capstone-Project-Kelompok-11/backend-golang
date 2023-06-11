@@ -24,7 +24,7 @@ func SwagSaveDocument(ctx *swag.SwagContext, name string, catchFileNameCallback 
 
   if form, err = ctx.MultipartForm(); err != nil {
 
-    return ctx.BadRequest(kornet.Msg("request is not form-data", true))
+    return ctx.BadRequest(kornet.Msg("request has no multipart/form-data", true))
   }
 
   documents := m.Keys([]string{

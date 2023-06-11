@@ -3,6 +3,7 @@ package controllers
 import (
   "encoding/json"
   "fmt"
+  "gorm.io/gorm"
   "lms/app/models"
   "lms/app/repository"
   util "lms/app/utils"
@@ -15,6 +16,7 @@ import (
   "skfw/papaya/koala/tools/posix"
   "skfw/papaya/pigeon/easy"
   mo "skfw/papaya/pigeon/templates/basicAuth/models"
+  "time"
 )
 
 var minScoreRequired = 60
@@ -340,15 +342,29 @@ func CourseController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
 
                     if course, err = courseRepo.Find("id = ?", courseId); course != nil {
 
-                      // create completion
-                      if _, err = completionCourseRepo.Create(&models.CompletionCourses{
-                        Model:    &easy.Model{},
-                        UserID:   userModel.ID,
-                        CourseID: courseId,
-                        Score:    scoreAvg,
-                      }); err != nil {
+                      var completionCourse *models.CompletionCourses
 
-                        return err
+                      if completionCourse, err = completionCourseRepo.Find("user_id = ? AND course_id = ?", userModel.ID, courseId); completionCourse != nil {
+
+                        completionCourse.Score = scoreAvg
+
+                        if err = completionCourseRepo.Update(completionCourse, "id = ?", completionCourse.ID); err != nil {
+
+                          return err
+                        }
+
+                      } else {
+
+                        // create completion
+                        if _, err = completionCourseRepo.Create(&models.CompletionCourses{
+                          Model:    &easy.Model{},
+                          UserID:   userModel.ID,
+                          CourseID: courseId,
+                          Score:    scoreAvg,
+                        }); err != nil {
+
+                          return err
+                        }
                       }
 
                       course.Finished += 1
@@ -359,15 +375,36 @@ func CourseController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
                         return err
                       }
 
-                      // create events
-                      if _, err = eventRepo.Create(&models.Events{
-                        Model:       &easy.Model{},
-                        UserID:      userModel.ID,
-                        Name:        "completion course",
-                        Description: fmt.Sprintf("completion course %s", course.Name),
-                      }); err != nil {
+                      var event *models.Events
 
-                        return err
+                      taskName := "completion course"
+                      taskDescription := fmt.Sprintf("completion course %s by %s", course.Name, userModel.Username)
+
+                      if event, err = eventRepo.Unscoped().Find("user_id = ? AND name = ? AND description = ?", userModel.ID, taskName, taskDescription); event != nil {
+
+                        // hack, make it fresh again
+                        currentTime := time.Now().UTC()
+                        event.CreatedAt = currentTime
+                        event.UpdatedAt = currentTime
+                        event.DeletedAt = gorm.DeletedAt{Time: currentTime, Valid: false}
+
+                        if err = eventRepo.Update(event, "id = ?", event.ID); err != nil {
+
+                          return err
+                        }
+
+                      } else {
+
+                        // create events
+                        if _, err = eventRepo.Create(&models.Events{
+                          Model:       &easy.Model{},
+                          UserID:      userModel.ID,
+                          Name:        taskName,
+                          Description: taskDescription,
+                        }); err != nil {
+
+                          return err
+                        }
                       }
                     }
                   }
@@ -842,20 +879,39 @@ func CourseController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
 
         var filename string
 
-        filename, _ = util.GenUniqFileNameOutput("assets/public/documents", "resume")
+        filename, _ = util.GenUniqFileNameOutput("assets/public/documents", "resume.pdf")
 
         var assign *models.Assignments
         var course *models.Courses
 
         if course, err = courseRepo.Find("id = ?", courseId); course != nil {
 
-          if assign, err = assignRepo.Create(&models.Assignments{
-            Model:    &easy.Model{},
-            UserID:   userModel.ID,
-            CourseID: courseId,
-          }); err != nil {
+          if assign, err = assignRepo.Find("user_id = ? AND course_id = ?", userModel.ID, courseId); err != nil {
 
-            return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+            // try to create again
+            if assign, err = assignRepo.Create(&models.Assignments{
+              Model:    &easy.Model{},
+              UserID:   userModel.ID,
+              CourseID: courseId,
+            }); err != nil {
+
+              return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+            }
+          }
+
+          if assign.Document != "" {
+
+            if err = util.SwagRemoveDocument(ctx, assign.Document); err != nil {
+
+              return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+            }
+
+            statusCode := ctx.Response().StatusCode()
+
+            if !(200 <= statusCode && statusCode < 300) {
+
+              return nil
+            }
           }
 
           assign.Document = filename
@@ -872,15 +928,50 @@ func CourseController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
             return ctx.InternalServerError(kornet.Msg(err.Error(), true))
           }
 
-          // create events
-          if _, err = eventRepo.Create(&models.Events{
-            Model:       &easy.Model{},
-            UserID:      userModel.ID,
-            Name:        "resume",
-            Description: fmt.Sprintf("%s resume by user %s", course.Name, userModel.Username),
-          }); err != nil {
+          // fix swag error return
+
+          statusCode := ctx.Response().StatusCode()
+
+          if !(200 <= statusCode && statusCode < 300) {
+
+            return nil
+          }
+
+          if err = assignRepo.Update(assign, "id = ?", assign.ID); err != nil {
 
             return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+          }
+
+          var event *models.Events
+
+          taskName := "resume"
+          taskDescription := fmt.Sprintf("resume %s by %s", course.Name, userModel.Username)
+
+          if event, err = eventRepo.Find("user_id = ? AND name = ? AND description = ?", userModel.ID, taskName, taskDescription); event != nil {
+
+            // hack, make it fresh again
+            currentTime := time.Now().UTC()
+            event.CreatedAt = currentTime
+            event.UpdatedAt = currentTime
+            event.DeletedAt = gorm.DeletedAt{Time: currentTime, Valid: false}
+
+            if err = eventRepo.Update(event, "id = ?", event.ID); err != nil {
+
+              return err
+            }
+
+          } else {
+
+            // create events
+            if _, err = eventRepo.Create(&models.Events{
+              Model:       &easy.Model{},
+              UserID:      userModel.ID,
+              Name:        taskName,
+              Description: taskDescription,
+            }); err != nil {
+
+              return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+            }
           }
 
           return ctx.Created(kornet.Msg("success create resume", false))
@@ -926,53 +1017,188 @@ func CourseController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
 
         var filename string
 
-        filename, _ = util.GenUniqFileNameOutput("assets/public/documents", "resume")
+        filename, _ = util.GenUniqFileNameOutput("assets/public/documents", "resume.pdf")
 
         var assign *models.Assignments
 
         if assign, err = assignRepo.Find("id = ?", assignId); assign != nil {
 
-          if videoSource != "" {
+          courseId := assign.CourseID
 
-            assign.Video = videoSource
-          }
+          var course *models.Courses
 
-          if assign.Document != "" {
+          if course, err = courseRepo.Find("id = ?", courseId); course != nil {
 
-            if err = util.SwagRemoveDocument(ctx, assign.Document); err != nil {
+            if videoSource != "" {
 
-              return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+              assign.Video = videoSource
             }
-          }
 
-          assign.Document = filename
+            if assign.Document != "" {
 
-          if err = util.SwagSaveDocument(ctx, filename, func(filename string) error {
+              if err = util.SwagRemoveDocument(ctx, assign.Document); err != nil {
+
+                return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+              }
+
+              statusCode := ctx.Response().StatusCode()
+
+              if !(200 <= statusCode && statusCode < 300) {
+
+                return nil
+              }
+            }
 
             assign.Document = filename
 
-            return assignRepo.Update(assign, "id = ?", assign.ID)
+            if err = util.SwagSaveDocument(ctx, filename, func(filename string) error {
 
-          }); err != nil {
+              assign.Document = filename
 
-            return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+              return assignRepo.Update(assign, "id = ?", assign.ID)
+
+            }); err != nil {
+
+              return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+            }
+
+            // fix swag error return
+
+            statusCode := ctx.Response().StatusCode()
+
+            if !(200 <= statusCode && statusCode < 300) {
+
+              return nil
+            }
+
+            if err = assignRepo.Update(assign, "id = ?", assign.ID); err != nil {
+
+              return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+            }
+
+            var event *models.Events
+
+            taskName := "resume"
+            taskDescription := fmt.Sprintf("resume %s by %s", course.Name, userModel.Username)
+
+            if event, err = eventRepo.Find("user_id = ? AND name = ? AND description = ?", userModel.ID, taskName, taskDescription); event != nil {
+
+              // hack, make it fresh again
+              currentTime := time.Now().UTC()
+              event.CreatedAt = currentTime
+              event.UpdatedAt = currentTime
+              event.DeletedAt = gorm.DeletedAt{Time: currentTime, Valid: false}
+
+              if err = eventRepo.Update(event, "id = ?", event.ID); err != nil {
+
+                return err
+              }
+
+            } else {
+
+              // create events
+              if _, err = eventRepo.Create(&models.Events{
+                Model:       &easy.Model{},
+                UserID:      userModel.ID,
+                Name:        taskName,
+                Description: taskDescription,
+              }); err != nil {
+
+                return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+              }
+            }
+
+            return ctx.OK(kornet.Msg("success update resume", false))
           }
 
-          // create events
-          if _, err = eventRepo.Create(&models.Events{
-            Model:       &easy.Model{},
-            UserID:      userModel.ID,
-            Name:        "update resume",
-            Description: fmt.Sprintf("update resume by user %s", userModel.Username),
-          }); err != nil {
-
-            return ctx.InternalServerError(kornet.Msg(err.Error(), true))
-          }
-
-          return ctx.OK(kornet.Msg("success update resume", false))
+          return ctx.BadRequest(kornet.Msg("course not found", true))
         }
 
         return ctx.BadRequest(kornet.Msg("resume not found", true))
+      }
+    }
+
+    return ctx.InternalServerError(kornet.Msg("unable to get user information", true))
+  })
+
+  router.Get("/course/report", &m.KMap{
+    "AuthToken":   true,
+    "description": "Get Course Report",
+    "request": &m.KMap{
+      "params": &m.KMap{
+        "id": "string", // course id
+      },
+      "headers": &m.KMap{
+        "Authorization": "string",
+      },
+    },
+    "response": swag.OkJSON(&kornet.Result{}),
+  }, func(ctx *swag.SwagContext) error {
+
+    var err error
+    var userModel *mo.UserModel
+    var ok bool
+
+    if ctx.Event() {
+
+      if userModel, ok = ctx.Target().(*mo.UserModel); ok {
+
+        kReq, _ := ctx.Kornet()
+        courseId := m.KValueToString(kReq.Query.Get("id"))
+
+        var completionCourses *models.CompletionCourses
+        var completionModules []models.CompletionModules
+        var course *models.Courses
+
+        if completionCourses, err = completionCourseRepo.Find("user_id = ? AND course_id = ?", userModel.ID, courseId); err != nil {
+
+          return ctx.BadRequest(kornet.Msg("you have not completed this course", true))
+        }
+
+        if course, err = courseRepo.Find("id = ?", courseId); err != nil {
+
+          return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+        }
+
+        courseInfo := &m.KMap{
+          "id":   course.ID,
+          "name": course.Name,
+        }
+
+        if completionModules, err = completionModuleRepo.FindAll(-1, -1, "user_id = ? AND course_id = ?", userModel.ID, courseId); err != nil {
+
+          return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+        }
+
+        modules := make([]m.KMapImpl, len(completionModules))
+
+        for i, completionModule := range completionModules {
+
+          var module *models.Modules
+
+          if module, err = moduleRepo.Find("id = ?", completionModule.ModuleID); err != nil {
+
+            return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+          }
+
+          moduleInfo := &m.KMap{
+            "id":   module.ID,
+            "name": module.Name,
+          }
+
+          modules[i] = &m.KMap{
+            "id":     completionModule.ID,
+            "module": moduleInfo,
+            "score":  completionModule.Score,
+          }
+        }
+
+        return ctx.OK(kornet.ResultNew(kornet.MessageNew("success get course grades", false), &m.KMap{
+          "id":      completionCourses.ID,
+          "course":  courseInfo,
+          "score":   completionCourses.Score,
+          "modules": modules,
+        }))
       }
     }
 
