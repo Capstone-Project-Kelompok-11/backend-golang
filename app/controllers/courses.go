@@ -821,21 +821,20 @@ func CourseController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
           return ctx.InternalServerError(kornet.Msg("unable to parse base url", true))
         }
 
-        URL.Path = "/api/v1/public/documents"
-        URL.RawPath = URL.Path
+        docPub := posix.KPathNew("/api/v1/public/document")
 
         var assign *models.Assignments
 
         if assign, err = assignRepo.Find("user_id = ? AND course_id = ?", userModel.ID, courseId); assign != nil {
 
-          URL.Path = posix.KPathNew(URL.Path).JoinStr(assign.Document)
+          URL.Path = docPub.Copy().JoinStr(assign.Document)
           URL.RawPath = URL.Path
+          assign.Document = URL.String()
 
           return ctx.OK(kornet.ResultNew(kornet.MessageNew("success", false), &m.KMap{
-            "id":           assign.ID,
-            "document":     assign.Document,
-            "document_url": URL.String(),
-            "video":        assign.Video,
+            "id":       assign.ID,
+            "document": assign.Document,
+            "video":    assign.Video,
           }))
         }
 

@@ -20,6 +20,7 @@ func SwagSaveDocument(ctx *swag.SwagContext, name string, catchFileNameCallback 
   var ext string
   var fileNameChange bool
 
+  prefName := name
   name = RemoveExtensionFromFileName(name)
 
   if form, err = ctx.MultipartForm(); err != nil {
@@ -93,6 +94,19 @@ func SwagSaveDocument(ctx *swag.SwagContext, name string, catchFileNameCallback 
                 if err = catchFileNameCallback(filename); err != nil {
 
                   return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+                }
+              }
+            } else {
+
+              // maybe pref-extension was wrong
+              if prefName != filename {
+
+                if catchFileNameCallback != nil {
+
+                  if err = catchFileNameCallback(filename); err != nil {
+
+                    return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+                  }
                 }
               }
             }
