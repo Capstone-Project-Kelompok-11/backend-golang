@@ -479,7 +479,11 @@ func AdminController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
         "level":       "string",
       }),
     },
-    "responses": swag.CreatedJSON(&kornet.Message{}),
+    "responses": swag.CreatedJSON(&kornet.Result{
+      Data: &m.KMap{
+        "id": "string",
+      },
+    }),
   }, func(ctx *swag.SwagContext) error {
 
     var err error
@@ -575,7 +579,9 @@ func AdminController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
           pp.Void(categoryCourseModel)
         }
 
-        return ctx.Created(kornet.Msg("successful create new course", false))
+        return ctx.Created(kornet.ResultNew(kornet.MessageNew("successful create course", false), &m.KMap{
+          "id": course.ID,
+        }))
       }
     }
 
@@ -735,7 +741,11 @@ func AdminController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
         "video?":      "string",
       }),
     },
-    "responses": swag.CreatedJSON(&kornet.Message{}),
+    "responses": swag.CreatedJSON(&kornet.Result{
+      Data: &m.KMap{
+        "id": "string",
+      },
+    }),
   }, func(ctx *swag.SwagContext) error {
 
     var err error
@@ -772,7 +782,9 @@ func AdminController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
           return ctx.BadRequest(kornet.Msg("module already exists", true))
         }
 
-        if _, err = moduleRepo.Create(&models.Modules{
+        var module *models.Modules
+
+        if module, err = moduleRepo.Create(&models.Modules{
           Model:       &easy.Model{},
           CourseID:    courseId,
           Name:        name,
@@ -783,7 +795,9 @@ func AdminController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
           return ctx.InternalServerError(kornet.Msg(err.Error(), true))
         }
 
-        return ctx.Created(kornet.Msg("successful create new module", false))
+        return ctx.Created(kornet.ResultNew(kornet.MessageNew("successful create module", false), &m.KMap{
+          "id": module.ID,
+        }))
       }
     }
 
