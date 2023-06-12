@@ -33,3 +33,12 @@ docker-down:
 	docker-compose down
 
 docker-up: docker-compose-up
+
+remove-assets-caches:
+	rm -rvf assets/public/caches/*
+
+test: remove-assets-caches
+	exec bin/start . &>/dev/null
+	go run test/main/wait_tcp_open.go
+	go test -v test/unit_test.go
+	bash scripts/ForceStop.sh
