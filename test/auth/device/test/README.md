@@ -1,5 +1,10 @@
+![cm](benchmark_ping_pong.png)
+![h1](benchmark_host.png)
+![n1](benchmark_ping_pong_n1.png)
+![n2](benchmark_ping_pong_n2.png)
+![n3](benchmark_ping_pong_n3.png)
+
 ```text
---- PASS: TestAuthDevicePingPong (0.03s)
 === RUN   TestPerformPingPong
 #0 25.057707ms
 #1 24.661065ms
@@ -78,7 +83,6 @@
 ```
 
 ```text
---- PASS: TestAuthDevicePingPong (0.03s)
 === RUN   TestPerformPingPong
 #0 24.650396ms
 #1 24.696069ms
@@ -157,7 +161,6 @@
 ```
 
 ```text
---- PASS: TestAuthDevicePingPong (0.03s)
 === RUN   TestPerformPingPong
 #0 24.741131ms
 #1 25.113079ms
@@ -261,4 +264,9 @@ PING skfw.net (159.89.202.201) 56(84) bytes of data.
 --- skfw.net ping statistics ---
 20 packets transmitted, 20 received, 0% packet loss, time 19029ms
 rtt min/avg/max/mdev = 23.756/24.425/26.544/0.633 ms
+```
+
+```text
+Tue Jun 13 21:31:06 WIB 2023
+700+ rows of table 'sessions'
 ```
