@@ -28,15 +28,6 @@ func AnonymController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
   pp.Void(reviewRepo)
   pp.Void(userRepo)
 
-  router.Get("/ping", &m.KMap{
-    "description": "Testing Response",
-    "request":     nil,
-    "responses":   swag.OkJSON(&kornet.Result{}),
-  }, func(ctx *swag.SwagContext) error {
-
-    return ctx.Message("pong")
-  })
-
   router.Get("/image/:src", &m.KMap{
     "description": "Get Public Image",
     "request": &m.KMap{

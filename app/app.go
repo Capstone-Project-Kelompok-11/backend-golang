@@ -29,10 +29,12 @@ func App(pn papaya.NetImpl) error {
 
   mainGroup := swagger.Group("/api/v1", "Schema")
 
+  testGroup := mainGroup.Group("/test", "Testing")
   anonymGroup := mainGroup.Group("/public", "Anonymous")
   adminGroup := mainGroup.Group("/admin", "Administration")
   userGroup := mainGroup.Group("/users", "User Management")
 
+  testRouter := testGroup.Router()
   anonymRouter := anonymGroup.Router()
   adminRouter := adminGroup.Router()
   userRouter := userGroup.Router()
@@ -41,6 +43,7 @@ func App(pn papaya.NetImpl) error {
   activeDuration := time.Minute * 24 // time to live, interval
   maxSessions := 24
 
+  controllers.TestController(pn, testRouter)
   controllers.AnonymController(pn, anonymRouter)
 
   basicAuth := bac.BasicAuthNew(conn, expired, activeDuration, maxSessions)
