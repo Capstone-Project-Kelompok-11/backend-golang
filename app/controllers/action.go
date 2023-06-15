@@ -288,6 +288,19 @@ func ActionController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
 
           if check.Image != "" {
 
+            if err = util.SwagRemoveImage(ctx, check.Image); err != nil {
+
+              return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+            }
+
+            statusCode := ctx.Response().StatusCode()
+            if !(200 <= statusCode && statusCode < 300) {
+
+              return ctx.InternalServerError(kornet.Msg("unable to remove image", true))
+            }
+
+          } else {
+
             check.Image, _ = util.GenUniqFileNameOutput("assets/public/images", "profile.png")
 
             if err = userRepo.Update(check, "id = ?", check.ID); err != nil {
@@ -296,7 +309,12 @@ func ActionController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
             }
           }
 
-          return util.SwagSaveImageX256(ctx, check.Image, nil)
+          return util.SwagSaveImageX256(ctx, check.Image, func(filename string) error {
+
+            check.Image = filename
+
+            return userRepo.Update(check, "id = ?", check.ID)
+          })
         }
 
         return ctx.BadRequest(kornet.Msg("unable to get user information", true))
