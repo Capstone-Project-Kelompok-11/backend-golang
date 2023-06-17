@@ -259,3 +259,19 @@ func SwagRemoveImage(ctx *swag.SwagContext, filename string) error {
 
   return ctx.BadRequest(kornet.Msg("image already removed", true))
 }
+
+func SwagCheckImageExist(filename string) bool {
+
+  dir := "assets/public/images/"
+  p := posix.KPathNew(dir).JoinStr(filename)
+  f := kio.KFileNew(p)
+  if f.IsExist() {
+
+    if f.IsFile() {
+
+      return true
+    }
+  }
+
+  return false
+}

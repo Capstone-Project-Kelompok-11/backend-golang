@@ -67,6 +67,29 @@ func AdminController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
 
         if check, _ := courseRepo.Find("id = ?", courseId); check != nil {
 
+          if check.Thumbnail != "" {
+
+            if util.SwagCheckImageExist(check.Thumbnail) {
+
+              if err = util.SwagRemoveImage(ctx, check.Thumbnail); err != nil {
+
+                return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+              }
+
+              statusCode := ctx.Response().StatusCode()
+              if !(200 <= statusCode && statusCode < 300) {
+
+                return ctx.InternalServerError(kornet.Msg("unable to remove thumbnail from course", true))
+              }
+
+            } else {
+
+              check.Thumbnail = ""
+
+              _ = courseRepo.Update(check, "id = ?", check.ID)
+            }
+          }
+
           if check.Thumbnail == "" {
 
             check.Thumbnail, _ = util.GenUniqFileNameOutput("assets/public/images", "course.thumb.png")
@@ -77,12 +100,32 @@ func AdminController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
             }
           }
 
-          return util.SwagSaveImage(ctx, check.Thumbnail, func(name string) error {
+          if err = util.SwagSaveImage(ctx, check.Thumbnail, func(name string) error {
 
             check.Thumbnail = name
 
             return courseRepo.Update(check, "id = ?", check.ID)
-          })
+          }); err != nil {
+
+            return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+          }
+
+          statusCode := ctx.Response().StatusCode()
+          if !(200 <= statusCode && statusCode < 300) {
+
+            return ctx.InternalServerError(kornet.Msg("unable to save thumbnail, please try again", true))
+          }
+
+          if !util.SwagCheckImageExist(check.Thumbnail) {
+
+            check.Thumbnail = ""
+
+            _ = courseRepo.Update(check, "id = ?", check.ID)
+
+            return ctx.InternalServerError(kornet.Msg("unable to save thumbnail, please try again", true))
+          }
+
+          return ctx.OK(kornet.Msg("successful upload course thumbnail ", false))
         }
 
         return ctx.BadRequest(kornet.Msg("course not found", true))
@@ -173,6 +216,29 @@ func AdminController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
 
         if check, _ := courseRepo.Find("id = ?", courseId); check != nil {
 
+          if check.Document != "" {
+
+            if util.SwagCheckDocumentExist(check.Document) {
+
+              if err = util.SwagRemoveDocument(ctx, check.Document); err != nil {
+
+                return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+              }
+
+              statusCode := ctx.Response().StatusCode()
+              if !(200 <= statusCode && statusCode < 300) {
+
+                return ctx.InternalServerError(kornet.Msg("unable to remove document from course", true))
+              }
+
+            } else {
+
+              check.Document = ""
+
+              _ = courseRepo.Update(check, "id = ?", check.ID)
+            }
+          }
+
           if check.Document == "" {
 
             check.Document, _ = util.GenUniqFileNameOutput("assets/public/documents", "course.doc")
@@ -183,12 +249,32 @@ func AdminController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
             }
           }
 
-          return util.SwagSaveDocument(ctx, check.Document, func(name string) error {
+          if err = util.SwagSaveDocument(ctx, check.Document, func(name string) error {
 
             check.Document = name
 
             return courseRepo.Update(check, "id = ?", check.ID)
-          })
+          }); err != nil {
+
+            return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+          }
+
+          statusCode := ctx.Response().StatusCode()
+          if !(200 <= statusCode && statusCode < 300) {
+
+            return ctx.InternalServerError(kornet.Msg("unable to save document, please try again", true))
+          }
+
+          if !util.SwagCheckDocumentExist(check.Document) {
+
+            check.Document = ""
+
+            _ = courseRepo.Update(check, "id = ?", check.ID)
+
+            return ctx.InternalServerError(kornet.Msg("unable to save document, please try again", true))
+          }
+
+          return ctx.OK(kornet.Msg("successful upload course document", false))
         }
 
         return ctx.BadRequest(kornet.Msg("course not found", true))
@@ -279,6 +365,29 @@ func AdminController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
 
         if check, _ := moduleRepo.Find("id = ?", moduleId); check != nil {
 
+          if check.Thumbnail != "" {
+
+            if util.SwagCheckImageExist(check.Thumbnail) {
+
+              if err = util.SwagRemoveImage(ctx, check.Thumbnail); err != nil {
+
+                return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+              }
+
+              statusCode := ctx.Response().StatusCode()
+              if !(200 <= statusCode && statusCode < 300) {
+
+                return ctx.InternalServerError(kornet.Msg("unable to remove thumbnail from module", true))
+              }
+
+            } else {
+
+              check.Thumbnail = ""
+
+              _ = moduleRepo.Update(check, "id = ?", check.ID)
+            }
+          }
+
           if check.Thumbnail == "" {
 
             check.Thumbnail, _ = util.GenUniqFileNameOutput("assets/public/images", "module.thumb.png")
@@ -289,12 +398,32 @@ func AdminController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
             }
           }
 
-          return util.SwagSaveImage(ctx, check.Thumbnail, func(name string) error {
+          if err = util.SwagSaveImage(ctx, check.Thumbnail, func(name string) error {
 
             check.Thumbnail = name
 
             return moduleRepo.Update(check, "id = ?", check.ID)
-          })
+          }); err != nil {
+
+            return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+          }
+
+          statusCode := ctx.Response().StatusCode()
+          if !(200 <= statusCode && statusCode < 300) {
+
+            return ctx.InternalServerError(kornet.Msg("unable to save thumbnail, please try again", true))
+          }
+
+          if !util.SwagCheckImageExist(check.Thumbnail) {
+
+            check.Thumbnail = ""
+
+            _ = moduleRepo.Update(check, "id = ?", check.ID)
+
+            return ctx.InternalServerError(kornet.Msg("unable to save thumbnail, please try again", true))
+          }
+
+          return ctx.OK(kornet.Msg("successful upload module thumbnail ", false))
         }
 
         return ctx.BadRequest(kornet.Msg("course not found", true))
@@ -385,6 +514,29 @@ func AdminController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
 
         if check, _ := moduleRepo.Find("id = ?", moduleId); check != nil {
 
+          if check.Document != "" {
+
+            if util.SwagCheckDocumentExist(check.Document) {
+
+              if err = util.SwagRemoveDocument(ctx, check.Document); err != nil {
+
+                return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+              }
+
+              statusCode := ctx.Response().StatusCode()
+              if !(200 <= statusCode && statusCode < 300) {
+
+                return ctx.InternalServerError(kornet.Msg("unable to remove document from module", true))
+              }
+
+            } else {
+
+              check.Document = ""
+
+              _ = moduleRepo.Update(check, "id = ?", check.ID)
+            }
+          }
+
           if check.Document == "" {
 
             check.Document, _ = util.GenUniqFileNameOutput("assets/public/documents", "module.doc")
@@ -395,12 +547,32 @@ func AdminController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
             }
           }
 
-          return util.SwagSaveDocument(ctx, check.Document, func(name string) error {
+          if err = util.SwagSaveDocument(ctx, check.Document, func(name string) error {
 
             check.Document = name
 
             return moduleRepo.Update(check, "id = ?", check.ID)
-          })
+          }); err != nil {
+
+            return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+          }
+
+          statusCode := ctx.Response().StatusCode()
+          if !(200 <= statusCode && statusCode < 300) {
+
+            return ctx.InternalServerError(kornet.Msg("unable to save document, please try again", true))
+          }
+
+          if !util.SwagCheckDocumentExist(check.Document) {
+
+            check.Document = ""
+
+            _ = moduleRepo.Update(check, "id = ?", check.ID)
+
+            return ctx.InternalServerError(kornet.Msg("unable to save document, please try again", true))
+          }
+
+          return ctx.OK(kornet.Msg("successful upload module document", false))
         }
 
         return ctx.BadRequest(kornet.Msg("course not found", true))

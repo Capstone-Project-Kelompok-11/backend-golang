@@ -900,20 +900,34 @@ func CourseController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
 
           if assign.Document != "" {
 
-            if err = util.SwagRemoveDocument(ctx, assign.Document); err != nil {
+            if util.SwagCheckDocumentExist(assign.Document) {
 
-              return ctx.InternalServerError(kornet.Msg(err.Error(), true))
-            }
+              if err = util.SwagRemoveDocument(ctx, assign.Document); err != nil {
 
-            statusCode := ctx.Response().StatusCode()
+                return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+              }
 
-            if !(200 <= statusCode && statusCode < 300) {
+              statusCode := ctx.Response().StatusCode()
 
-              return nil
+              if !(200 <= statusCode && statusCode < 300) {
+
+                return nil
+              }
+            } else {
+
+              assign.Document = ""
             }
           }
 
-          assign.Document = filename
+          if assign.Document == "" {
+
+            assign.Document = filename
+
+          } else {
+
+            filename = assign.Document
+          }
+
           assign.Video = videoSource
 
           if err = util.SwagSaveDocument(ctx, filename, func(filename string) error {
@@ -1035,20 +1049,34 @@ func CourseController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
 
             if assign.Document != "" {
 
-              if err = util.SwagRemoveDocument(ctx, assign.Document); err != nil {
+              if util.SwagCheckDocumentExist(assign.Document) {
 
-                return ctx.InternalServerError(kornet.Msg(err.Error(), true))
-              }
+                if err = util.SwagRemoveDocument(ctx, assign.Document); err != nil {
 
-              statusCode := ctx.Response().StatusCode()
+                  return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+                }
 
-              if !(200 <= statusCode && statusCode < 300) {
+                statusCode := ctx.Response().StatusCode()
 
-                return nil
+                if !(200 <= statusCode && statusCode < 300) {
+
+                  return nil
+                }
+              } else {
+
+                assign.Document = ""
+
               }
             }
 
-            assign.Document = filename
+            if assign.Document == "" {
+
+              assign.Document = filename
+
+            } else {
+
+              filename = assign.Document
+            }
 
             if err = util.SwagSaveDocument(ctx, filename, func(filename string) error {
 

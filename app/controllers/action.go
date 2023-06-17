@@ -288,18 +288,28 @@ func ActionController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
 
           if check.Image != "" {
 
-            if err = util.SwagRemoveImage(ctx, check.Image); err != nil {
+            if util.SwagCheckImageExist(check.Image) {
 
-              return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+              if err = util.SwagRemoveImage(ctx, check.Image); err != nil {
+
+                return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+              }
+
+              statusCode := ctx.Response().StatusCode()
+              if !(200 <= statusCode && statusCode < 300) {
+
+                return ctx.InternalServerError(kornet.Msg("unable to remove image", true))
+              }
+            } else {
+
+              check.Image = "" // fallback to default empty
+
+              // try save default empty value
+              _ = userRepo.Update(check, "id = ?", check.ID)
             }
+          }
 
-            statusCode := ctx.Response().StatusCode()
-            if !(200 <= statusCode && statusCode < 300) {
-
-              return ctx.InternalServerError(kornet.Msg("unable to remove image", true))
-            }
-
-          } else {
+          if check.Image == "" {
 
             check.Image, _ = util.GenUniqFileNameOutput("assets/public/images", "profile.png")
 
@@ -307,14 +317,35 @@ func ActionController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
 
               return ctx.InternalServerError(kornet.Msg(err.Error(), true))
             }
+
           }
 
-          return util.SwagSaveImageX256(ctx, check.Image, func(filename string) error {
+          if err = util.SwagSaveImageX256(ctx, check.Image, func(filename string) error {
 
             check.Image = filename
 
             return userRepo.Update(check, "id = ?", check.ID)
-          })
+          }); err != nil {
+
+            return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+          }
+
+          statusCode := ctx.Response().StatusCode()
+          if !(200 <= statusCode && statusCode < 300) {
+
+            return ctx.InternalServerError(kornet.Msg("unable to save image, please try again", true))
+          }
+
+          if !util.SwagCheckImageExist(check.Image) {
+
+            check.Image = ""
+
+            _ = userRepo.Update(check, "id = ?", check.ID)
+
+            return ctx.InternalServerError(kornet.Msg("unable to save image, please try again", true))
+          }
+
+          return ctx.OK(kornet.Msg("successful upload user profile image", false))
         }
 
         return ctx.BadRequest(kornet.Msg("unable to get user information", true))

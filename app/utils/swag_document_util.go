@@ -158,3 +158,19 @@ func SwagRemoveDocument(ctx *swag.SwagContext, filename string) error {
 
   return ctx.BadRequest(kornet.Msg("document already removed", true))
 }
+
+func SwagCheckDocumentExist(filename string) bool {
+
+  dir := "assets/public/documents/"
+  p := posix.KPathNew(dir).JoinStr(filename)
+  f := kio.KFileNew(p)
+  if f.IsExist() {
+
+    if f.IsFile() {
+
+      return true
+    }
+  }
+
+  return false
+}
