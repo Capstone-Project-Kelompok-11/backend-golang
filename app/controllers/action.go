@@ -26,9 +26,7 @@ func ActionController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
   userRepo, _ := repository.UserRepositoryNew(DB)
   completionCourseRepo, _ := repository.CompletionCourseRepositoryNew(DB)
   courseRepo, _ := repository.CourseRepositoryNew(DB)
-
-  pp.Void(completionCourseRepo)
-  pp.Void(courseRepo)
+  sessionRepo, _ := repository.SessionRepositoryNew(DB)
 
   router.Get("/info", &m.KMap{
     "AuthToken":   true,
@@ -202,6 +200,82 @@ func ActionController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
     }
 
     return ctx.InternalServerError(kornet.Msg("unable to get user information", true))
+  })
+
+  router.Post("/forgot/password", &m.KMap{
+    "description": "Forgot User Password",
+    "request": &m.KMap{
+      "headers": &m.KMap{
+        "Authorization": "string",
+      },
+      "body": swag.JSON(&m.KMap{
+        "email":    "string",
+        "password": "string",
+      }),
+    },
+    "responses": swag.OkJSON(&kornet.Result{}),
+  }, func(ctx *swag.SwagContext) error {
+
+    var err error
+
+    kReq, _ := ctx.Kornet()
+
+    body := &m.KMap{}
+
+    if err = json.Unmarshal(kReq.Body.ReadAll(), body); err != nil {
+
+      return ctx.BadRequest(kornet.Msg("unable to parsing request body", true))
+    }
+
+    currentTime := time.Now().UTC()
+
+    // tolerance
+    tolerance := time.Hour * 24 * 7 // 7 days
+    toleranceTime := currentTime.Add(-tolerance)
+
+    authToken := bacx.RequestAuth(ctx.Request())
+    authTokenHash := bacx.HashSHA3(authToken)
+
+    email := m.KValueToString(body.Get("email"))
+    password := m.KValueToString(body.Get("password"))
+
+    var user *models.Users
+
+    if user, err = userRepo.Find("email = ?", email); user != nil {
+
+      userId := user.ID
+
+      var session *mo.SessionModel
+
+      if session, err = sessionRepo.Unscoped().Find("user_id = ? AND token = ?", userId, authTokenHash); session != nil {
+
+        expired := session.Expired
+
+        if expired.After(toleranceTime) {
+
+          var hashPassword string
+
+          if hashPassword, err = bacx.HashPassword(password); err != nil {
+
+            return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+          }
+
+          user.Password = hashPassword
+          if err = userRepo.Update(user, "id = ?", userId); err != nil {
+
+            return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+          }
+
+          return ctx.OK(kornet.Msg("successful update user password", false))
+        }
+
+        return ctx.BadRequest(kornet.Msg("token is too expired to be reused", true))
+      }
+
+      return ctx.BadRequest(kornet.Msg("no match any session by token", true))
+    }
+
+    return ctx.BadRequest(kornet.Msg("no match any user by email", true))
   })
 
   router.Post("/change/password", &m.KMap{
