@@ -2099,6 +2099,15 @@ func AdminController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
           beforeAt = time.Now().UTC().UnixMilli()
         }
 
+        var URL *url.URL
+
+        if URL, err = url.Parse(ctx.BaseURL()); err != nil {
+
+          URL = &url.URL{}
+        }
+
+        imagePub := posix.KPathNew("/api/v1/public/image")
+
         var events []models.Events
 
         if events, err = eventRepo.FindAll(size, page, "created_at BETWEEN ? AND ?", time.UnixMilli(afterAt), time.UnixMilli(beforeAt)); err != nil {
@@ -2114,6 +2123,14 @@ func AdminController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
           userId := event.UserID
 
           if user, _ := userRepo.Find("id = ?", userId); user != nil {
+
+            if user.Image != "" {
+
+              URL.Path = imagePub.Copy().JoinStr(user.Image)
+              URL.RawPath = URL.Path
+
+              user.Image = URL.String()
+            }
 
             exposed.Put("user", &m.KMap{
               "name":     user.Name.String,
