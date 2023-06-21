@@ -225,6 +225,7 @@ func (c *CourseRepository) PreFindAllAndOrder(size int, page int, sort string, q
     if err = c.GORM().
       Preload("Checkout").
       Preload("Modules").
+      Preload("CategoryCourses").
       //Joins("INNER JOIN checkout ON courses.id = checkout.course_id").
       //Joins("INNER JOIN modules ON courses.id = modules.course_id").
       Where(query, args...).
@@ -252,6 +253,7 @@ func (c *CourseRepository) PreFind(query any, args ...any) (*models.Courses, err
   if err = c.GORM().
     Preload("Checkout").
     Preload("Modules").
+    Preload("CategoryCourses").
     //Joins("INNER JOIN checkout ON courses.id = checkout.course_id").
     //Joins("INNER JOIN modules ON courses.id = modules.course_id").
     Where(query, args...).
@@ -283,6 +285,7 @@ func (c *CourseRepository) PreFindByCheckUserAndCourseId(userId string, courseId
       Select("id").
       Where("verify = true AND user_id = ? AND course_id = ?", userId, courseId)).
     Preload("Modules").
+    Preload("CategoryCourses").
     Where("id = ?", courseId).
     Find(&data).
     Error; err != nil {

@@ -37,8 +37,7 @@ func CourseController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
   completionModuleRepo, _ := repository.CompletionModuleRepositoryNew(DB)
   completionCourseRepo, _ := repository.CompletionCourseRepositoryNew(DB)
   assignRepo, _ := repository.AssignmentRepositoryNew(DB)
-
-  pp.Void(assignRepo)
+  categoryRepo, _ := repository.CategoryRepositoryNew(DB)
 
   router.Get("/course", &m.KMap{
     "AuthToken":   true,
@@ -96,6 +95,7 @@ func CourseController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
         if data, err = courseRepo.PreFindByCheckUserAndCourseId(userModel.ID, courseId); data != nil {
 
           collective := util.CourseDataCollective(ctx, userRepo, []models.Courses{*data})
+          collective = util.CategoryDataCollective(categoryRepo, []string{}, collective)
 
           if len(collective) > 0 {
 

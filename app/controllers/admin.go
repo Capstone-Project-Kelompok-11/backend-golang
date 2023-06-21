@@ -1402,6 +1402,7 @@ func AdminController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
         }
 
         collective := util.CourseDataCollective(ctx, userRepo, []models.Courses{*course})
+        collective = util.CategoryDataCollective(categoryRepo, []string{}, collective)
 
         if len(collective) > 0 {
 
@@ -1421,10 +1422,11 @@ func AdminController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
     "description": "Catch All Course",
     "request": m.KMap{
       "params": &m.KMap{
-        "size":    "number",
-        "page":    "number",
-        "sort?":   "string",
-        "search?": "string",
+        "size":      "number",
+        "page":      "number",
+        "sort?":     "string",
+        "search?":   "string",
+        "category?": "string",
       },
       "headers": &m.KMap{
         "Authorization": "string",
@@ -1467,18 +1469,37 @@ func AdminController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
         page := util.ValueToInt(kReq.Query.Get("page"))
         sort := m.KValueToString(kReq.Query.Get("sort"))
         search := m.KValueToString(kReq.Query.Get("search"))
+        category := m.KValueToString(kReq.Query.Get("category"))
+
+        category = strings.TrimSpace(category)
+        var categories []string
+
+        if category != "" {
+
+          categories = strings.Split(category, ",")
+
+        } else {
+
+          categories = []string{"all"}
+        }
+
+        for i, context := range categories {
+
+          categories[i] = strings.TrimSpace(context)
+        }
 
         if search, sort, err = util.SafeParseSearchAndSortOrder(search, sort); err != nil {
 
           return ctx.InternalServerError(kornet.Msg(err.Error(), true))
         }
 
-        if data, err = courseRepo.PreFindAllAndOrder(size, page, "name "+sort, "name LIKE ?", search); err != nil {
+        if data, err = courseRepo.PreFindAllAndOrder(size, page, "name "+sort, "LOWER(name) LIKE LOWER(?)", search); err != nil {
 
           return ctx.InternalServerError(kornet.Msg(err.Error(), true))
         }
 
         collective := util.CourseDataCollective(ctx, userRepo, data)
+        collective = util.CategoryDataCollective(categoryRepo, categories, collective)
 
         return ctx.OK(kornet.ResultNew(kornet.MessageNew("catch full course", false), collective))
       }
