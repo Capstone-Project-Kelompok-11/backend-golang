@@ -2275,7 +2275,7 @@ func AdminController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
         return ctx.InternalServerError(kornet.Msg(err.Error(), true))
       }
 
-      if course, err = courseRepo.Find("id = ?", courseId); err != nil {
+      if course, err = courseRepo.Unscoped().Find("id = ?", courseId); err != nil {
 
         return ctx.InternalServerError(kornet.Msg(err.Error(), true))
       }
@@ -2296,7 +2296,7 @@ func AdminController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
 
         var module *models.Modules
 
-        if module, err = moduleRepo.Find("id = ?", completionModule.ModuleID); err != nil {
+        if module, err = moduleRepo.Unscoped().Find("id = ?", completionModule.ModuleID); err != nil {
 
           return ctx.InternalServerError(kornet.Msg(err.Error(), true))
         }

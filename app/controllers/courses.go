@@ -1203,7 +1203,7 @@ func CourseController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
 
           var module *models.Modules
 
-          if module, err = moduleRepo.Find("id = ?", completionModule.ModuleID); err != nil {
+          if module, err = moduleRepo.Unscoped().Find("id = ?", completionModule.ModuleID); err != nil {
 
             return ctx.InternalServerError(kornet.Msg(err.Error(), true))
           }
