@@ -98,6 +98,8 @@ func (u *UserRepository) CatchAllCheckoutVerified(query any, args ...any) ([]mod
   users = make([]models.Users, 0)
   checkouts = make([]models.Checkout, 0)
 
+  u.SessionNew() // bugfix
+
   DB := u.Repository.GORM()
 
   if err = DB.Preload("Checkout", "verify = ?", true).Where(query, args...).Find(&users).Error; err != nil {
@@ -122,6 +124,8 @@ func (u *UserRepository) CatchAllCheckoutNonVerified(query any, args ...any) ([]
   users = make([]models.Users, 0)
   checkouts = make([]models.Checkout, 0)
 
+  u.SessionNew() // bugfix
+
   DB := u.Repository.GORM()
 
   if err = DB.Preload("Checkout", "verify = ?", false).Where(query, args...).Find(&users).Error; err != nil {
@@ -145,6 +149,8 @@ func (u *UserRepository) CatchAllCheckoutCancelled(query any, args ...any) ([]mo
   var checkouts []models.Checkout
   users = make([]models.Users, 0)
   checkouts = make([]models.Checkout, 0)
+
+  u.SessionNew() // bugfix
 
   DB := u.Repository.GORM()
 
