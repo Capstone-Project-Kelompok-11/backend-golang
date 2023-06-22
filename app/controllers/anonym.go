@@ -4,6 +4,7 @@ import (
   "lms/app/models"
   "lms/app/repository"
   util "lms/app/utils"
+  "net/url"
   "skfw/papaya"
   "skfw/papaya/bunny/swag"
   "skfw/papaya/koala/kio"
@@ -403,6 +404,15 @@ func AnonymController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
     size := util.ValueToInt(kReq.Query.Get("size"))
     page := util.ValueToInt(kReq.Query.Get("page"))
 
+    var URL *url.URL
+
+    if URL, err = url.Parse(ctx.BaseURL()); err != nil {
+
+      URL = &url.URL{}
+    }
+
+    imagePub := posix.KPathNew("/api/v1/public/image")
+
     if reviews, err = reviewRepo.CatchAll(size, page); err != nil {
 
       return ctx.InternalServerError(kornet.Msg(err.Error(), true))
@@ -413,21 +423,37 @@ func AnonymController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
     for _, review := range reviews {
 
       var user *models.Users
+      var course *models.Courses
 
       if user, err = userRepo.Find("id", review.UserID); user != nil {
 
-        exposed = append(exposed, &m.KMap{
-          "id": review.ID,
-          "user": &m.KMap{
-            "name":     user.Name.String,
-            "username": user.Username,
-            "image":    user.Image,
-          },
-          "rating":  review.Rating,
-          "comment": review.Description,
-        })
+        if user.Image != "" {
 
-        continue
+          URL.Path = imagePub.Copy().JoinStr(user.Image)
+          URL.RawPath = URL.Path
+
+          user.Image = URL.String()
+        }
+
+        if course, err = courseRepo.Find("id", review.CourseID); course != nil {
+
+          exposed = append(exposed, &m.KMap{
+            "id": review.ID,
+            "user": &m.KMap{
+              "name":     user.Name.String,
+              "username": user.Username,
+              "image":    user.Image,
+            },
+            "course": &m.KMap{
+              "id":   course.ID,
+              "name": course.Name,
+            },
+            "rating":  review.Rating,
+            "comment": review.Description,
+          })
+
+          continue
+        }
       }
     }
 
