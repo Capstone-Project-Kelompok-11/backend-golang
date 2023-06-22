@@ -389,6 +389,7 @@ func AnonymController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
       "params": &m.KMap{
         "page": "number",
         "size": "number",
+        "id?":  "string", // course id (optional)
       },
       "headers": &m.KMap{
         "Authorization": "string",
@@ -403,6 +404,7 @@ func AnonymController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
     kReq, _ := ctx.Kornet()
     size := util.ValueToInt(kReq.Query.Get("size"))
     page := util.ValueToInt(kReq.Query.Get("page"))
+    courseId := m.KValueToString(kReq.Query.Get("id"))
 
     var URL *url.URL
 
@@ -413,9 +415,24 @@ func AnonymController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
 
     imagePub := posix.KPathNew("/api/v1/public/image")
 
-    if reviews, err = reviewRepo.CatchAll(size, page); err != nil {
+    if courseId != "" {
 
-      return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+      if _, err = courseRepo.Find("id = ?", courseId); err != nil {
+
+        return ctx.BadRequest(kornet.Msg("course not found", true))
+      }
+
+      if reviews, err = reviewRepo.FindAll(size, page, "course_id = ?", courseId); err != nil {
+
+        return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+      }
+
+    } else {
+
+      if reviews, err = reviewRepo.CatchAll(size, page); err != nil {
+
+        return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+      }
     }
 
     exposed := make([]m.KMapImpl, 0)
@@ -435,7 +452,7 @@ func AnonymController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
           user.Image = URL.String()
         }
 
-        if course, err = courseRepo.Find("id", review.CourseID); course != nil {
+        if courseId != "" {
 
           exposed = append(exposed, &m.KMap{
             "id": review.ID,
@@ -444,15 +461,33 @@ func AnonymController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
               "username": user.Username,
               "image":    user.Image,
             },
-            "course": &m.KMap{
-              "id":   course.ID,
-              "name": course.Name,
-            },
             "rating":  review.Rating,
             "comment": review.Description,
           })
 
           continue
+
+        } else {
+
+          if course, err = courseRepo.Find("id", review.CourseID); course != nil {
+
+            exposed = append(exposed, &m.KMap{
+              "id": review.ID,
+              "user": &m.KMap{
+                "name":     user.Name.String,
+                "username": user.Username,
+                "image":    user.Image,
+              },
+              "course": &m.KMap{
+                "id":   course.ID,
+                "name": course.Name,
+              },
+              "rating":  review.Rating,
+              "comment": review.Description,
+            })
+
+            continue
+          }
         }
       }
     }
