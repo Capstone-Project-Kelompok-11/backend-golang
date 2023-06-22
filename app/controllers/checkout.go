@@ -253,7 +253,7 @@ func CheckoutController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
     "description": "Checkout Course",
     "request": &m.KMap{
       "params": &m.KMap{
-        "id": "string", // course id
+        "id": "string", // checkout id
       },
       "headers": &m.KMap{
         "Authorization": "string",
@@ -262,7 +262,6 @@ func CheckoutController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
   }, func(ctx *swag.SwagContext) error {
 
     var err error
-    var course *models.Courses
     var checkout *models.Checkout
 
     pp.Void(err)
@@ -271,22 +270,16 @@ func CheckoutController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
 
       if userModel, ok := ctx.Target().(*mo.UserModel); ok {
 
+        pp.Void(userModel)
+
         kReq, _ := ctx.Kornet()
 
-        courseId := m.KValueToString(kReq.Query.Get("id"))
-
-        // check course if not exists
-        if course, err = courseRepo.Find("id = ?", courseId); err != nil {
-
-          pp.Void(course)
-
-          return ctx.BadRequest(kornet.Msg("course not found", true))
-        }
+        checkoutId := m.KValueToString(kReq.Query.Get("id"))
 
         // check checkout if exists
-        if checkout, err = checkoutRepo.Find("user_id = ?", userModel.ID); checkout != nil {
+        if checkout, err = checkoutRepo.Find("id = ?", checkoutId); checkout != nil {
 
-          if err = checkoutRepo.Remove(checkout, "id = ?", checkout.ID); err != nil {
+          if err = checkoutRepo.Remove("id = ?", checkout.ID); err != nil {
 
             return ctx.InternalServerError(kornet.Msg(err.Error(), true))
           }
