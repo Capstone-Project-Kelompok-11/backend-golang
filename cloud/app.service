@@ -1,10 +1,16 @@
 [Unit]
 Description=Academy API
 After=network.target nss-lookup.target
+Documentation=
 
 [Service]
-ExecStart=/usr/bin/env DB_HOST=localhost DB_PORT=5432 DB_USERNAME=user DB_PASSWORD= DB_PASSWORD_FILE=/app/config/db/postgres/passwd.txt DB_NAME=academy DB_CHARSET=utf8 DB_TIMEZONE=UTC DB_SECURE=false DB_UNIX_SOCK= /app/start
+Type=forking
+WorkingDirectory=/app
 Restart=on-failure
+Environment=DB_HOST=localhost DB_PORT=5432 DB_USERNAME=user DB_PASSWORD= DB_PASSWORD_FILE=/app/config/db/postgres/passwd.txt DB_NAME=academy DB_CHARSET=utf8 DB_TIMEZONE=UTC DB_SECURE=false DB_UNIX_SOCK=
+ExecStart=/app/start
+ExecReload=
+ExecStop=
 
 [Install]
 WantedBy=multi-user.target

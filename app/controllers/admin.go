@@ -1211,6 +1211,32 @@ func AdminController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
 
         moduleId := m.KValueToString(kReq.Query.Get("id"))
 
+        var module *models.Modules
+
+        if module, err = moduleRepo.Find("id = ?", moduleId); err != nil {
+
+          return ctx.BadRequest(kornet.Msg("module not found", true))
+        }
+
+        //keys := collection.KListNewR[string](data.Tree().Keys())
+        //keys.Sort()
+        //
+        //validation := ""
+        //
+        //if err = keys.ForEach(func(i uint, value string) error {
+        //
+        //  validation += value + ","
+        //  return nil
+        //
+        //}); err != nil {
+        //
+        //  return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+        //}
+        //
+        //validation += "modules.id=" + module.ID
+        //validation += "courses.id.id=" + module.CourseID
+        //validation = bac.HashSHA3(validation)
+
         // re-parsing quizzes data, double-check
         if quizzes, err = util.ParseQuizzes([]byte(m.KMapEncodeJSON(data.Get("quizzes")))); err != nil {
 
@@ -1219,12 +1245,15 @@ func AdminController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
 
         dataQuizzes := m.KMapEncodeJSON(quizzes)
 
-        if _, err = quizRepo.Find("module_id = ?", moduleId); err != nil {
+        var check *models.Quizzes
+
+        if check, err = quizRepo.Find("module_id = ?", module.ID); err != nil {
 
           if _, err = quizRepo.Create(&models.Quizzes{
             Model:    &easy.Model{},
-            ModuleID: moduleId,
+            ModuleID: module.ID,
             Data:     dataQuizzes,
+            //Valid:    validation,
           }); err != nil {
 
             return ctx.InternalServerError(kornet.Msg(err.Error(), true))
@@ -1233,7 +1262,15 @@ func AdminController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
           return ctx.Created(kornet.Msg("successful create new quizzes", false))
         }
 
-        return ctx.BadRequest(kornet.Msg("quizzes already exists", true))
+        check.Data = dataQuizzes
+        //check.Valid = validation
+
+        if err = quizRepo.Update(check, "module_id = ?", module.ID); err != nil {
+
+          return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+        }
+
+        return ctx.OK(kornet.Msg("successful update quizzes", false))
       }
     }
 
@@ -1285,6 +1322,32 @@ func AdminController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
 
         moduleId := m.KValueToString(kReq.Query.Get("id"))
 
+        var module *models.Modules
+
+        if module, err = moduleRepo.Find("id = ?", moduleId); err != nil {
+
+          return ctx.BadRequest(kornet.Msg("module not found", true))
+        }
+
+        //keys := collection.KListNewR[string](data.Tree().Keys())
+        //keys.Sort()
+        //
+        //validation := ""
+        //
+        //if err = keys.ForEach(func(i uint, value string) error {
+        //
+        //  validation += value + ","
+        //  return nil
+        //
+        //}); err != nil {
+        //
+        //  return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+        //}
+        //
+        //validation += "modules.id=" + module.ID
+        //validation += "courses.id.id=" + module.CourseID
+        //validation = bac.HashSHA3(validation)
+
         // re-parsing quizzes data, double-check
         if quizzes, err = util.ParseQuizzes([]byte(m.KMapEncodeJSON(data.Get("quizzes")))); err != nil {
 
@@ -1293,11 +1356,12 @@ func AdminController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
 
         dataQuizzes := m.KMapEncodeJSON(quizzes)
 
-        if check, err = quizRepo.Find("module_id = ?", moduleId); check != nil {
+        if check, err = quizRepo.Find("module_id = ?", module.ID); check != nil {
 
           check.Data = dataQuizzes
+          //check.Valid = validation
 
-          if err = quizRepo.Update(check, "module_id = ?", moduleId); err != nil {
+          if err = quizRepo.Update(check, "module_id = ?", module.ID); err != nil {
 
             return ctx.InternalServerError(kornet.Msg(err.Error(), true))
           }
@@ -2495,6 +2559,8 @@ func AdminController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
     Student    int64 `json:"student"`
     Course     int64 `json:"course"`
     Graduate   int64 `json:"graduate"`
+    Income     int64 `json:"income"`
+    Orders     int64 `json:"orders"`
   }
 
   router.Get("/stats", &m.KMap{
@@ -2532,6 +2598,11 @@ func AdminController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
     }
 
     if err = courseRepo.CountCourse(&data.Course); err != nil {
+
+      return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+    }
+
+    if err = courseRepo.CatchIncomeAndOrders(&data.Income, &data.Orders); err != nil {
 
       return ctx.InternalServerError(kornet.Msg(err.Error(), true))
     }

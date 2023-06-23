@@ -24,6 +24,7 @@ type CourseRepositoryImpl interface {
   PreCatchAll(size int, page int) ([]models.Courses, error)
   PreCatchAllPopular(size int, page int) ([]models.Courses, error)
   CountCourse(courseCount *int64) error
+  CatchIncomeAndOrders(args ...any) error
 }
 
 func CourseRepositoryNew(DB *gorm.DB) (CourseRepositoryImpl, error) {
@@ -358,4 +359,32 @@ func (c *CourseRepository) CountCourse(courseCount *int64) error {
   }
 
   return errors.New("unable to catch course count")
+}
+
+func (c *CourseRepository) CatchIncomeAndOrders(args ...any) error {
+
+  var err error
+
+  var SQL *sql.DB
+  var prepared *sql.Rows
+
+  if SQL, err = c.GORM().DB(); err != nil {
+
+    return err
+  }
+
+  if prepared, err = SQL.Query("SELECT SUM(CAST(price AS INT)) AS income, COUNT(name) AS orders FROM courses INNER JOIN checkout ON courses.id = checkout.course_id WHERE checkout.verify = true"); err != nil {
+
+    return err
+  }
+
+  for prepared.Next() {
+
+    if err = prepared.Scan(args...); err != nil {
+
+      return err
+    }
+  }
+
+  return nil
 }
