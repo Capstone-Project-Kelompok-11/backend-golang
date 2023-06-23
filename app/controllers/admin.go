@@ -804,9 +804,9 @@ func AdminController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
 
         name := m.KValueToString(body.Get("name"))
         description := m.KValueToString(body.Get("description"))
-        thumbnail := m.KValueToString(body.Get("thumbnail"))
+        //thumbnail := m.KValueToString(body.Get("thumbnail"))
         video := m.KValueToString(body.Get("video"))
-        document := m.KValueToString(body.Get("document"))
+        //document := m.KValueToString(body.Get("document"))
         level := m.KValueToString(body.Get("level"))
         price := decimal.NewFromInt(util.ValueToInt64(body.Get("price")))
 
@@ -814,9 +814,9 @@ func AdminController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
 
           check.Name = name
           check.Description = description
-          check.Thumbnail = thumbnail
+          //check.Thumbnail = thumbnail
           check.Video = video
-          check.Document = document
+          //check.Document = document
           check.Level = level
           check.Price = price
 
