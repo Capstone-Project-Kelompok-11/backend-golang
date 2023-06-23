@@ -300,6 +300,9 @@ func CheckoutController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
     "AuthToken":   true,
     "description": "Checkout Course",
     "request": &m.KMap{
+      "params": &m.KMap{
+        "id?": "string", // checkout id (optional)
+      },
       "headers": &m.KMap{
         "Authorization": "string",
       },
@@ -320,6 +323,8 @@ func CheckoutController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
 
         kReq, _ := ctx.Kornet()
 
+        checkoutId := m.KValueToString(kReq.Query.Get("id"))
+
         body := &m.KMap{}
 
         if err = json.Unmarshal(kReq.Body.ReadAll(), body); err != nil {
@@ -332,23 +337,42 @@ func CheckoutController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
         // unverified checkout
         var checkouts []models.Checkout
 
-        if checkouts, err = checkoutRepo.FindAll(-1, -1, "user_id = ? AND verify = ?", userModel.ID, false); err != nil {
+        if checkoutId != "" {
 
-          return ctx.InternalServerError(kornet.Msg(err.Error(), true))
-        }
+          if _, err = checkoutRepo.Find("id = ? AND user_id = ?", checkoutId, userModel.ID); err != nil {
 
-        // verified checkout
-        if err = checkoutRepo.PreloadVerifyByUserId(userModel.ID, paymentMethod); err != nil {
+            return ctx.BadRequest(kornet.Msg("checkout not found", true))
+          }
 
-          return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+          if checkouts, err = checkoutRepo.FindAll(-1, -1, "id = ? AND user_id = ? AND verify = ?", checkoutId, userModel.ID, false); err != nil {
+
+            return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+          }
+
+          // verified checkout
+          if err = checkoutRepo.PreloadVerifyByIdAndUserId(checkoutId, userModel.ID, paymentMethod); err != nil {
+
+            return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+          }
+
+        } else {
+
+          if checkouts, err = checkoutRepo.FindAll(-1, -1, "user_id = ? AND verify = ?", userModel.ID, false); err != nil {
+
+            return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+          }
+
+          // verified checkout
+          if err = checkoutRepo.PreloadVerifyByUserId(userModel.ID, paymentMethod); err != nil {
+
+            return ctx.InternalServerError(kornet.Msg(err.Error(), true))
+          }
         }
 
         for _, checkout := range checkouts {
 
-          courseId := checkout.CourseID
-
           // update member count in course member active
-          if err = courseRepo.UpdateMemberCountById(courseId); err != nil {
+          if err = courseRepo.UpdateMemberCountById(checkout.CourseID); err != nil {
 
             return ctx.InternalServerError(kornet.Msg(err.Error(), true))
           }
