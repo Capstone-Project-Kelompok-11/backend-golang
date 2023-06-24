@@ -434,8 +434,10 @@ func CourseController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
                       return ctx.InternalServerError(kornet.Msg(err.Error(), true))
                     }
 
-                    // passed by score, once
-                    return ctx.OK(kornet.Msg(fmt.Sprintf("your score is %d passed", score), false))
+                    // passed by score
+                    return ctx.OK(kornet.ResultNew(kornet.MessageNew(fmt.Sprintf("your score is %d passed", score), false), &m.KMap{
+                      "score": score,
+                    }))
                   }
 
                   return ctx.BadRequest(kornet.Msg("take quiz only once", true))
@@ -459,11 +461,15 @@ func CourseController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
                 }
 
                 // passed by score
-                return ctx.OK(kornet.Msg(fmt.Sprintf("your score is %d passed", score), false))
+                return ctx.OK(kornet.ResultNew(kornet.MessageNew(fmt.Sprintf("your score is %d passed", score), false), &m.KMap{
+                  "score": score,
+                }))
               }
 
               // not passed
-              return ctx.OK(kornet.Msg(fmt.Sprintf("your score is %d not enough to passed", score), false))
+              return ctx.OK(kornet.ResultNew(kornet.MessageNew(fmt.Sprintf("your score is %d not enough to passed", score), false), &m.KMap{
+                "score": score,
+              }))
             }
 
             return ctx.BadRequest(kornet.Msg("quizzes not found", true))
