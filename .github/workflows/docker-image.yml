@@ -7,14 +7,11 @@ on:
     branches: [ "main" ]
 
 jobs:
-
   build:
-
     runs-on: ubuntu-latest
-
     steps:
     - uses: actions/checkout@v3
       with:
         submodules: 'recursive'
     - name: Build the Docker image
-      run: env DOCKER_BUILDKIT=1 docker-compose -f compose.yml -p academy build
+      run: env DOCKER_BUILDKIT=1 docker-compose -f docker-compose.yaml -p academy build
