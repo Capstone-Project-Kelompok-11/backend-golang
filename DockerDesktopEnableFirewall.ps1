@@ -1,9 +1,9 @@
-#!powershell
+#!pwsh
 
 $Rules = @(
     @{ DisplayName = "Docker Client"; ProgramPath = "C:\Program Files\Docker\Docker\resources\bin\com.docker.cli.exe" },
     @{ DisplayName = "Docker Desktop Backend"; ProgramPath = "C:\program files\docker\docker\resources\com.docker.backend.exe" },
-    @{ DisplayName = "Docker Deamon"; ProgramPath = "C:\Program Files\Docker\Docker\resources\dockerd.exe" },
+    @{ DisplayName = "Docker Daemon"; ProgramPath = "C:\Program Files\Docker\Docker\resources\dockerd.exe" },
     @{ DisplayName = "Docker CLI"; ProgramPath = "C:\Program Files\Docker\Docker\resources\bin\docker.exe" },
     @{ DisplayName = "Docker Compose CLI"; ProgramPath = "C:\Program Files\Docker\Docker\resources\bin\docker-compose.exe" },
     @{ DisplayName = "Docker Credential Desktop"; ProgramPath = "C:\Program Files\Docker\Docker\resources\bin\docker-credential-desktop.exe" },
