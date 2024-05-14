@@ -1,3 +1,4 @@
+name: academy
 services:
   backend:
     build:
@@ -25,6 +26,22 @@ services:
       postgres:
         condition: service_healthy
 
+  pgadmin4:
+    image: dpage/pgadmin4:snapshot
+    container_name: academy-pgadmin4
+    secrets:
+      - pg-passwd
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=darkbludevil@gmail.com
+      - PGADMIN_DEFAULT_PASSWORD_FILE=/run/secrets/pg-passwd
+      - PGADMIN_CONFIG_LOGIN_BANNER="Authorised users only!"
+      - PGADMIN_CONFIG_CONSOLE_LOG_LEVEL=10
+    ports:
+      - 8080:80
+    depends_on:
+      postgres:
+        condition: service_healthy
+
   postgres:
     image: postgres
     restart: always
@@ -40,8 +57,6 @@ services:
       - POSTGRES_DB=academy
     expose:
       - 5432
-    ports:
-      - 5432:5432
     healthcheck:
       test: [ "CMD", "pg_isready" ]
       interval: 10s
