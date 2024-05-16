@@ -74,6 +74,7 @@ func App(pn papaya.NetImpl) error {
 	)
 
 	factory.AdminFactory(pn) // set admin factory
+	factory.CourseFactory(pn)
 
 	swagger.Start()
 
