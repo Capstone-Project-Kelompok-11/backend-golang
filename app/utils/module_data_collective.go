@@ -9,7 +9,7 @@ import (
 
 func ModuleDataCollective(ctx *swag.SwagContext, data []models.Modules) []m.KMapImpl {
 
-	var err error
+	//var err error
 	res := make([]m.KMapImpl, 0)
 
 	//var URL *url.URL
