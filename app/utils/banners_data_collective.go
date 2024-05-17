@@ -1,15 +1,15 @@
 package util
 
 import (
-  "lms/app/models"
-  "skfw/papaya/bunny/swag"
-  m "skfw/papaya/koala/mapping"
-  "skfw/papaya/koala/tools/posix"
+	"lms/app/models"
+	"skfw/papaya/bunny/swag"
+	m "skfw/papaya/koala/mapping"
+	"skfw/papaya/koala/tools/posix"
 )
 
 func BannersDataCollective(ctx *swag.SwagContext, data []models.Banners) []m.KMapImpl {
 
-	var err error
+	//var err error
 	res := make([]m.KMapImpl, 0)
 
 	//var URL *url.URL
