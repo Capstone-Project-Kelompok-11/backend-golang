@@ -195,7 +195,7 @@ func (c *CourseRepository) FindAllAndOrderPopular(size int, page int, sort strin
 
 		if err = c.GORM().
 			Preload("CategoryCourses").
-			Joins("INNER JOIN (SELECT courses.id AS id, (k / n)::FLOAT AS rating FROM courses INNER JOIN (SELECT id, (rating1 + rating2 + rating3 + rating4 + rating5)::FLOAT AS n, (rating1 + (rating2 * 2) + (rating3 * 3) + (rating4 * 4) + (rating5 * 5))::FLOAT AS k FROM courses) AS modify ON courses.id = modify.id WHERE n > 0 ORDER BY rating DESC, member_count DESC) AS popular ON courses.id = popular.id").
+			Joins("INNER JOIN (SELECT courses.id AS id, (k / NULLIF(n, 0))::FLOAT AS rating FROM courses INNER JOIN (SELECT id, (rating1 + rating2 + rating3 + rating4 + rating5)::FLOAT AS n, (rating1 + (rating2 * 2) + (rating3 * 3) + (rating4 * 4) + (rating5 * 5))::FLOAT AS k FROM courses) AS modify ON courses.id = modify.id WHERE n >= 0 ORDER BY rating DESC, member_count DESC) AS popular ON courses.id = popular.id").
 			Where(query, args...).
 			Order(sort).
 			Offset(offset).
