@@ -6,7 +6,6 @@ import (
 	"lms/app/models"
 	"lms/app/repository"
 	util "lms/app/utils"
-	"net/url"
 	"skfw/papaya"
 	"skfw/papaya/bunny/swag"
 	"skfw/papaya/koala/kornet"
@@ -59,28 +58,31 @@ func ActionController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
 
 		var err error
 		var user *models.Users
-		var URL *url.URL
+		//var URL *url.URL
 
 		if ctx.Event() {
 
 			if userModel, ok := ctx.Target().(*mo.UserModel); ok {
 
-				if URL, err = url.Parse(ctx.BaseURL()); err != nil {
+				//if URL, err = url.Parse(ctx.BaseURL()); err != nil {
+				//
+				//	URL = &url.URL{}
+				//}
 
-					URL = &url.URL{}
-				}
-
-				imagePub := posix.KPathNew("/api/v1/public/image")
+				imagePub := posix.KPathNew("/public/image")
+				//imagePub := posix.KPathNew("/api/v1/public/image")
 
 				// get full user information
 				if user, err = userRepo.Find("id = ?", userModel.ID); user != nil {
 
 					if user.Image != "" {
 
-						URL.Path = imagePub.Copy().JoinStr(user.Image)
-						URL.RawPath = URL.Path
+						//URL.Path = imagePub.Copy().JoinStr(user.Image)
+						//URL.RawPath = URL.Path
+						//
+						//user.Image = URL.String()
 
-						user.Image = URL.String()
+						user.Image = imagePub.Copy().JoinStr(user.Image)
 					}
 
 					return ctx.OK(kornet.ResultNew(kornet.MessageNew("successful get user information", false), &m.KMap{
