@@ -1,127 +1,138 @@
 package util
 
 import (
-  "lms/app/models"
-  "lms/app/repository"
-  "net/url"
-  "skfw/papaya/bunny/swag"
-  m "skfw/papaya/koala/mapping"
-  "skfw/papaya/koala/tools/posix"
+	"lms/app/models"
+	"lms/app/repository"
+	"skfw/papaya/bunny/swag"
+	m "skfw/papaya/koala/mapping"
+	"skfw/papaya/koala/tools/posix"
 )
 
 func CourseDataCollective(ctx *swag.SwagContext, userRepo repository.UserRepositoryImpl, data []models.Courses) []m.KMapImpl {
 
-  var err error
-  res := make([]m.KMapImpl, 0)
+	var err error
+	res := make([]m.KMapImpl, 0)
 
-  var URL *url.URL
+	//var URL *url.URL
+	//
+	//if URL, err = url.Parse(ctx.BaseURL()); err != nil {
+	//
+	//  URL = &url.URL{}
+	//}
 
-  if URL, err = url.Parse(ctx.BaseURL()); err != nil {
+	imagePub := posix.KPathNew("/public/image")
+	documentPub := posix.KPathNew("/public/document")
+	videoPub := posix.KPathNew("/public/video")
 
-    URL = &url.URL{}
-  }
+	//imagePub := posix.KPathNew("/api/v1/public/image")
+	//documentPub := posix.KPathNew("/api/v1/public/document")
+	//videoPub := posix.KPathNew("/api/v1/public/video")
 
-  imagePub := posix.KPathNew("/api/v1/public/image")
-  documentPub := posix.KPathNew("/api/v1/public/document")
-  //videoPub := posix.KPathNew("/api/v1/public/video")
+	for _, course := range data {
 
-  for _, course := range data {
+		var user *models.Users
 
-    var user *models.Users
+		if user, err = userRepo.Find("id = ?", course.UserID); err != nil {
 
-    if user, err = userRepo.Find("id = ?", course.UserID); err != nil {
+			continue
+		}
 
-      continue
-    }
+		if user.Image != "" {
 
-    if user.Image != "" {
+			//URL.Path = imagePub.Copy().JoinStr(user.Image)
+			//URL.RawPath = URL.Path
+			//
+			//user.Image = URL.String()
 
-      URL.Path = imagePub.Copy().JoinStr(user.Image)
-      URL.RawPath = URL.Path
+			user.Image = imagePub.Copy().JoinStr(user.Image)
+		}
 
-      user.Image = URL.String()
-    }
+		if course.Thumbnail != "" {
 
-    if course.Thumbnail != "" {
+			//URL.Path = imagePub.Copy().JoinStr(course.Thumbnail)
+			//URL.RawPath = URL.Path
+			//
+			//course.Thumbnail = URL.String()
 
-      URL.Path = imagePub.Copy().JoinStr(course.Thumbnail)
-      URL.RawPath = URL.Path
+			course.Thumbnail = imagePub.Copy().JoinStr(course.Thumbnail)
+		}
 
-      course.Thumbnail = URL.String()
-    }
+		if course.Document != "" {
 
-    if course.Document != "" {
+			//URL.Path = documentPub.Copy().JoinStr(course.Document)
+			//URL.RawPath = URL.Path
+			//
+			//course.Document = URL.String()
 
-      URL.Path = documentPub.Copy().JoinStr(course.Document)
-      URL.RawPath = URL.Path
+			course.Document = documentPub.Copy().JoinStr(course.Document)
+		}
 
-      course.Document = URL.String()
-    }
+		if course.Video != "" {
 
-    //if course.Video != "" {
-    //
-    //  URL.Path = videoPub.Copy().JoinStr(course.Video)
-    //  URL.RawPath = URL.Path
-    //
-    //  course.Video = URL.String()
-    //}
+			//URL.Path = videoPub.Copy().JoinStr(course.Video)
+			//URL.RawPath = URL.Path
+			//
+			//course.Video = URL.String()
 
-    mm := &m.KMap{
-      "id": course.Model.ID,
-      "create_by": &m.KMap{
-        "name":     user.Name.String,
-        "username": user.Username,
-        "image":    user.Image,
-      },
-      "name":        course.Name,
-      "description": course.Description,
-      "thumbnail":   course.Thumbnail,
-      "video":       course.Video,
-      "document":    course.Document,
-      "price":       course.Price.BigInt(),
-      "level":       course.Level,
-      "rating": RatingView(Rating{
-        Rating1: course.Rating1,
-        Rating2: course.Rating2,
-        Rating3: course.Rating3,
-        Rating4: course.Rating4,
-        Rating5: course.Rating5,
-      }),
-      "rating1":          course.Rating1,
-      "rating2":          course.Rating2,
-      "rating3":          course.Rating3,
-      "rating4":          course.Rating4,
-      "rating5":          course.Rating5,
-      "ratingN":          course.Rating1 + course.Rating2 + course.Rating3 + course.Rating4 + course.Rating5,
-      "finished":         course.Finished,
-      "member_count":     course.MemberCount,
-      "category_courses": course.CategoryCourses,
-      "created_at":       course.CreatedAt,
-      "update_at":        course.UpdatedAt,
-    }
+			course.Video = videoPub.Copy().JoinStr(course.Video)
+		}
 
-    if course.Modules != nil {
+		mm := &m.KMap{
+			"id": course.Model.ID,
+			"create_by": &m.KMap{
+				"name":     user.Name.String,
+				"username": user.Username,
+				"image":    user.Image,
+			},
+			"name":        course.Name,
+			"description": course.Description,
+			"thumbnail":   course.Thumbnail,
+			"video":       course.Video,
+			"document":    course.Document,
+			"price":       course.Price.BigInt(),
+			"level":       course.Level,
+			"rating": RatingView(Rating{
+				Rating1: course.Rating1,
+				Rating2: course.Rating2,
+				Rating3: course.Rating3,
+				Rating4: course.Rating4,
+				Rating5: course.Rating5,
+			}),
+			"rating1":          course.Rating1,
+			"rating2":          course.Rating2,
+			"rating3":          course.Rating3,
+			"rating4":          course.Rating4,
+			"rating5":          course.Rating5,
+			"ratingN":          course.Rating1 + course.Rating2 + course.Rating3 + course.Rating4 + course.Rating5,
+			"finished":         course.Finished,
+			"member_count":     course.MemberCount,
+			"category_courses": course.CategoryCourses,
+			"created_at":       course.CreatedAt,
+			"update_at":        course.UpdatedAt,
+		}
 
-      mm.Put("modules", ModuleDataCollective(ctx, course.Modules))
-    }
+		if course.Modules != nil {
 
-    if course.Reviews != nil {
+			mm.Put("modules", ModuleDataCollective(ctx, course.Modules))
+		}
 
-      mm.Put("reviews", course.Reviews)
-    }
+		if course.Reviews != nil {
 
-    if course.Assignments != nil {
+			mm.Put("reviews", course.Reviews)
+		}
 
-      mm.Put("assignments", course.Assignments)
-    }
+		if course.Assignments != nil {
 
-    if course.Checkout != nil {
+			mm.Put("assignments", course.Assignments)
+		}
 
-      mm.Put("checkout", course.Checkout)
-    }
+		if course.Checkout != nil {
 
-    res = append(res, mm)
-  }
+			mm.Put("checkout", course.Checkout)
+		}
 
-  return res
+		res = append(res, mm)
+	}
+
+	return res
 }

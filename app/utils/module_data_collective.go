@@ -1,78 +1,87 @@
 package util
 
 import (
-  "lms/app/models"
-  "net/url"
-  "skfw/papaya/bunny/swag"
-  m "skfw/papaya/koala/mapping"
-  "skfw/papaya/koala/tools/posix"
+	"lms/app/models"
+	"skfw/papaya/bunny/swag"
+	m "skfw/papaya/koala/mapping"
+	"skfw/papaya/koala/tools/posix"
 )
 
 func ModuleDataCollective(ctx *swag.SwagContext, data []models.Modules) []m.KMapImpl {
 
-  var err error
-  res := make([]m.KMapImpl, 0)
+	var err error
+	res := make([]m.KMapImpl, 0)
 
-  var URL *url.URL
+	//var URL *url.URL
+	//
+	//if URL, err = url.Parse(ctx.BaseURL()); err != nil {
+	//
+	//	URL = &url.URL{}
+	//}
 
-  if URL, err = url.Parse(ctx.BaseURL()); err != nil {
+	imagePub := posix.KPathNew("/public/image")
+	documentPub := posix.KPathNew("/public/document")
+	videoPub := posix.KPathNew("/public/video")
 
-    URL = &url.URL{}
-  }
+	//imagePub := posix.KPathNew("/api/v1/public/image")
+	//documentPub := posix.KPathNew("/api/v1/public/document")
+	//videoPub := posix.KPathNew("/api/v1/public/video")
 
-  imagePub := posix.KPathNew("/api/v1/public/image")
-  documentPub := posix.KPathNew("/api/v1/public/document")
-  //videoPub := posix.KPathNew("/api/v1/public/video")
+	for _, module := range data {
 
-  for _, module := range data {
+		if module.Thumbnail != "" {
 
-    if module.Thumbnail != "" {
+			//URL.Path = imagePub.Copy().JoinStr(module.Thumbnail)
+			//URL.RawPath = URL.Path
+			//
+			//module.Thumbnail = URL.String()
 
-      URL.Path = imagePub.Copy().JoinStr(module.Thumbnail)
-      URL.RawPath = URL.Path
+			module.Thumbnail = imagePub.Copy().JoinStr(module.Thumbnail)
+		}
 
-      module.Thumbnail = URL.String()
-    }
+		if module.Document != "" {
 
-    if module.Document != "" {
+			//URL.Path = documentPub.Copy().JoinStr(module.Document)
+			//URL.RawPath = URL.Path
+			//
+			//module.Document = URL.String()
 
-      URL.Path = documentPub.Copy().JoinStr(module.Document)
-      URL.RawPath = URL.Path
+			module.Document = documentPub.Copy().JoinStr(module.Document)
+		}
 
-      module.Document = URL.String()
-    }
+		if module.Video != "" {
 
-    //if module.Video != "" {
-    //
-    //  URL.Path = videoPub.Copy().JoinStr(module.Video)
-    //  URL.RawPath = URL.Path
-    //
-    //  module.Video = URL.String()
-    //}
+			//URL.Path = videoPub.Copy().JoinStr(module.Video)
+			//URL.RawPath = URL.Path
+			//
+			//module.Video = URL.String()
 
-    mm := &m.KMap{
-      "id":          module.ID,
-      "name":        module.Name,
-      "description": module.Description,
-      "thumbnail":   module.Thumbnail,
-      "video":       module.Video,
-      "document":    module.Document,
-      "created_at":  module.CreatedAt,
-      "updated_at":  module.UpdatedAt,
-    }
+			module.Video = videoPub.Copy().JoinStr(module.Video)
+		}
 
-    if len(module.Quizzes) > 0 {
+		mm := &m.KMap{
+			"id":          module.ID,
+			"name":        module.Name,
+			"description": module.Description,
+			"thumbnail":   module.Thumbnail,
+			"video":       module.Video,
+			"document":    module.Document,
+			"created_at":  module.CreatedAt,
+			"updated_at":  module.UpdatedAt,
+		}
 
-      mm.Put("quizzes", QuizzesDataCollective(ctx, module.Quizzes))
-    }
+		if len(module.Quizzes) > 0 {
 
-    if len(module.CompletionModules) > 0 {
+			mm.Put("quizzes", QuizzesDataCollective(ctx, module.Quizzes))
+		}
 
-      mm.Put("completion_modules", CompletionModulesDataCollective(ctx, module.CompletionModules))
-    }
+		if len(module.CompletionModules) > 0 {
 
-    res = append(res, mm)
-  }
+			mm.Put("completion_modules", CompletionModulesDataCollective(ctx, module.CompletionModules))
+		}
 
-  return res
+		res = append(res, mm)
+	}
+
+	return res
 }
