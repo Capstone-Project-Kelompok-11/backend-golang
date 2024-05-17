@@ -83,10 +83,10 @@ func CourseController(pn papaya.NetImpl, router swag.SwagRouterImpl) {
 
 				courseId := m.KValueToString(kReq.Query.Get("id"))
 
-				if URL, err = url.Parse(ctx.BaseURL()); err != nil {
-
-					URL = &url.URL{}
-				}
+				//if URL, err = url.Parse(ctx.BaseURL()); err != nil {
+				//
+				//	URL = &url.URL{}
+				//}
 
 				//imagePub := posix.KPathNew("/public/image")
 				//imagePub := posix.KPathNew("/api/v1/public/image")
